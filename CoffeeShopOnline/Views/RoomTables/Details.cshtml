@@ -1,0 +1,60 @@
+﻿@model CoffeeShopOnline.Models.RoomTable
+
+@{
+    ViewBag.Title = "Details";
+}
+
+<h2>Details</h2>
+
+<div>
+    <h4>RoomTable</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.TableNumber)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.TableNumber)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.TableSits)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.TableSits)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Available)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Available)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.InOrOut)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.InOrOut)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.RoomType)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.RoomType)
+        </dd>
+
+       
+
+    </dl>
+</div>
+<p>
+    @Html.ActionLink("Edit", "Edit", new { id = Model.Id }) |
+    @Html.ActionLink("Back to List", "Index")
+</p>

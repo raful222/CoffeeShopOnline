@@ -1,0 +1,151 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTR Coffee-Shop</title>
+    <meta content="" name="description">
+    <meta content="" name="keywords">
+
+    <link href="~/assets/Layout/img/coffeeF.jpg" rel="icon">
+    <link href="~/assets/Layout/img/coffeeF.jpg" rel="apple-touch-icon">
+
+    <link href="https://fonts.googleapis.com/css?family=Poppins:300,300i,400,400i,600,600i,700,700i|Satisfy|Comic+Neue:300,300i,400,400i,700,700i" rel="stylesheet">
+
+    <link href="~/assets/Layout/vendor/animate.css/animate.min.css" rel="stylesheet">
+    <link href="~/assets/Layout/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/assets/Layout/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="~/assets/Layout/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+    <link href="~/assets/Layout/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+    <link href="~/assets/Layout/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+    <link href="~/assets/Layout/css/style.css" rel="stylesheet" />
+</head>
+<body>
+
+    <section id="topbar" class="d-flex align-items-center fixed-top ">
+        <div class="container-fluid container-xl d-flex align-items-center justify-content-center justify-content-lg-start">
+            <i class="bi bi-phone d-flex align-items-center"><span>+972 08-610-5555</span></i>
+            <i class="bi bi-clock ms-4 d-none d-lg-flex align-items-center"><span>Sun-Sat: 7:00 AM - 23:00 PM</span></i>
+        </div>
+    </section>
+   <header id="header" class="fixed-top d-flex align-items-center ">
+       <div class="container-fluid container-xl d-flex align-items-center justify-content-between">
+
+           <div class="logo me-auto">
+               <h1><a href="/Home/OnlineOrder">GTR&Coffee</a></h1>
+               <!-- Uncomment below if you prefer to use an image logo -->
+               <!-- <a href="index.html"><img src="assets/img/logo.png" alt="" class="img-fluid"></a>-->
+           </div>
+
+           <nav id="navbar" class="navbar order-last order-lg-0">
+
+
+               @Html.ActionLink("דף הבית", "OnlineOrder", "Home")
+               @Html.ActionLink("כתובת", "Contact", "Home")
+               @Html.ActionLink("עלינו", "About", "Home")
+
+               @if (User.IsInRole("Admin"))
+               {
+                   <ul>
+                       <li class="dropdown">
+                           <a href="#"><span>מנהל</span> <i class="bi bi-chevron-down"></i></a>
+                           <ul>
+                               <li>
+                                   @Html.ActionLink("הוסף קטגוריה", "Index", "Categories")
+                               </li>
+                               <li>
+                                   @Html.ActionLink("הוסף מוצר", "Index", "Items")
+                               </li>
+
+                               <li>
+                                   @Html.ActionLink("שולחונות", "Index", "RoomTables")
+                               </li>
+                               <li>
+                                   @Html.ActionLink("תפקידים", "Index", "Role")
+                               </li>
+                           </ul>
+                       </li>
+                   </ul>
+               }
+               @if (User.IsInRole("Baristas") || User.IsInRole("Admin"))
+               {
+
+                   @Html.ActionLink("כל ההזמנות", "Index", "Orders")
+                   @Html.ActionLink("בצע הזמנה חדשה", "BaristaOrder", "Barista")
+
+               }
+               <li>
+               </li>
+               <i class="bi bi-list mobile-nav-toggle"></i>
+           </nav><!-- .navbar -->
+          @Html.Partial("_CartPartial")
+
+           
+
+       </div>
+    </header><!-- End Header -->
+
+    <main id="main">
+
+        <!-- ======= Breadcrumbs Section ======= -->
+        <section class="breadcrumbs" id="log">
+            <div class="container">
+
+                <div class="d-flex justify-content-between align-items-center" >
+                    <h2></h2>
+                    <ol>
+                        @Html.Partial("_LoginPartial")
+                    </ol>
+                </div>
+
+            </div>
+        </section><!-- End Breadcrumbs Section -->
+
+        <section class="inner-page">
+            <div class="container">
+                <p>
+                    @RenderBody()
+                </p>
+            </div>
+        </section>
+
+    </main>
+    <hr />
+    <footer id="footer">
+        <div class="container">
+            <h3>GTR&Coffee</h3>
+            <p>The bast coffee at the world,just try it and be Happy!</p>
+            
+            
+        </div>
+    </footer>
+
+    <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+    <script src="~/assets/Layout/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/Layout/vendor/glightbox/js/glightbox.min.js"></script>
+    <script src="~/assets/Layout/vendor/isotope-layout/isotope.pkgd.min.js"></script>
+    <script src="~/assets/Layout/vendor/swiper/swiper-bundle.min.js"></script>
+    <script src="~/assets/Layout/vendor/php-email-form/validate.js"></script>
+
+    <script src="~/assets/Layout/js/main.js"></script>
+
+</body>
+
+</html>
+
+<style>
+      body {
+        background-color: rgb(70 150 68 / 0.50);
+        background-size: cover;
+        background-repeat: no-repeat;
+        height: 100%;
+        font-family: 'Numans', sans-serif;
+    }
+    #log {
+        background-color: rgb(85 130 85 / 0.25);
+        background-size: cover;
+    }
+</style>

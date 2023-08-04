@@ -1,0 +1,57 @@
+﻿@model CoffeeShopOnline.Models.People
+
+@{
+    ViewBag.Title = "Online Order";
+}
+<script src="~/Scripts/jquery-3.6.0.min.js"></script>
+<script src="~/Scripts/jquery.validate.min.js"></script>
+<script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+<div class="check">
+    @using (Html.BeginForm("TableInfo", "Home", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="form-horizontal">
+            <h2>Welcome to GTR Coffee Stop<br /> How many people you are?</h2>
+            <hr />
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+
+            <div class="form-group">
+                <div class="col-md-12">
+                    @Html.EditorFor(model => model.NumberOfClient)
+                    <br />
+
+                    @Html.ValidationMessageFor(model => model.NumberOfClient, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h3>
+                    Would you like to close an event?
+                </h3>
+                <div class="col-md-12">
+                    @Html.CheckBoxFor(model => model.ClosedParty, new { htmlAttributes = new { @class = "form-control" } })
+                    <br />
+
+                    @Html.ValidationMessageFor(model => model.ClosedParty, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-md-offset-2 col-md-12">
+                    <input type="submit" value="Create" class="btn btn-default" />
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+<style>
+    .check{
+        text-align:center;
+
+    }
+
+</style>

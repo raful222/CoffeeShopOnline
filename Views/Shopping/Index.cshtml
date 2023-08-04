@@ -1,0 +1,166 @@
+﻿@model IEnumerable<CoffeeShopOnline.Models.ShoppingViewModel>
+@{
+    ViewBag.Title = "Index";
+    var message = TempData["Message"] ?? string.Empty;
+    var noItemMessage = TempData["NoItem"] ?? string.Empty;
+
+}
+@*<h3><strong>@TempData["Message"]</strong></h3>
+*@
+<script src="~/Scripts/jquery-3.6.0.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
+
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#example').DataTable({
+            "language": {
+                "lengthMenu": "Display _MENU_ records per page",
+                "zeroRecords": "Nothing found - sorry",
+                "info": "Showing page _PAGE_ of _PAGES_",
+                "infoEmpty": "No records available",
+                "infoFiltered": "(filtered from _MAX_ total records)"
+            }
+        });
+    });
+
+    function AddToCart(item) {
+        var itemId = $(item).attr("itemid");
+        var formData = new FormData();
+        formData.append("ItemId", itemId);
+
+        $.ajax({
+            async: true,
+            type: 'POST',
+            contentType: false,
+            processData: false,
+            data: formData,
+            url: '/Shopping/Index',
+            success: function (data) {
+                if (data.Success) {
+                    $("#cartItem").text("Cart(" + data.Counter + ")");
+
+                }
+                else {
+                    alert(data.Message);
+
+                }
+
+            },
+
+        });
+    }
+     var noItemMessage = '@noItemMessage';
+    if (noItemMessage)
+        alert(noItemMessage);
+
+</script>
+@TempData["SitIstaken"]
+<div class="col-10" style="text-align:center;">
+    @Html.ActionLink("בחר שולחן חדש", "OnlineOrder", "Home")
+    <br />
+    @Html.ActionLink("ארוחות עסקיות בלבד", "business_lunch")
+    <br />
+    <h3> :היא @DateTime.Now.DayOfWeek  מנת יום  ;</h3>
+    @foreach (var item in Model)
+    {
+
+        if (item.PruductOfDay)
+        {
+            <h3> @item.ItemName</h3>
+            <h3> @item.Description</h3>
+            <td><img src="@Url.Content(item.ImagePath)" width="150" height="150" /></td>
+
+        }
+    }
+</div>
+
+<table id="example" class="display" style="width: 100%; position: static; height: 100px " ;>
+    <thead>
+        <tr>
+            <th>קטגוריה</th>
+            <th>
+                מוצר
+            </th>
+            <th>תמונה</th>
+            <th>פירוט</th>
+            <th>מחיר</th>
+            <th>הכי פופלרי </th>
+            <th> הוסף להזמנה </th>
+
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            if (@item.Category != "עסקיות צהריים" && item.Category != "רביעי ספשיילים" && item.Category != "תפריט אירוע"
+                            || item.Category == "רביעי ספשיילים" && DateTime.Now.DayOfWeek == DayOfWeek.Wednesday ||
+                            (@DateTime.Now.Hour < 17 && DateTime.Now.Hour > 12) && (item.Category == "עסקיות צהריים")
+                            || item.ClosedParty && item.Category == "תפריט אירוע")
+
+            {
+
+
+                <tr id="menu">
+                    <td id="menu">@item.Category</td>
+                    <td>@item.ItemName </td>
+                    <td><img src="@Url.Content(item.ImagePath)" width="150" height="150" /></td>
+                    <td><b>@item.Description</b></td>
+
+                    @if ((@item.Promo && (@DateTime.Now.Hour < 17 && DateTime.Now.Hour > 12)) || (!item.InOrOutTable && item.Category == "אלכוהול"))
+                    {
+
+                        <td>
+                            <b>@item.PromoPrice.ToString(format: "#,##0.00 $")  </b>
+
+
+                        </td>
+
+                    }
+                    else
+                    {
+                        <td><b>@item.ItemPrice.ToString(format: "#,##0.00 $")</b></td>
+                    }
+                    <td>@item.Popular</td>
+                    @if (item.Quantity == 0)
+                    {
+                        <td>
+                            <b>This item out of stock</b>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <input type="button" name="AddToCart" value="Add To Cart" class="btn btn-primary" itemid="@item.ItemId" id="btnAddToCart" onclick="AddToCart(this)" />
+                        </td>
+                    }
+                </tr>
+
+            }
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <th>קטגוריה</th>
+
+            <th>
+                מוצר
+            </th>
+            <th>תמונה</th>
+            <th>פירוט</th>
+            <th>מחיר</th>
+            <th>הכי פופלרי </th>
+            <th> הוסף להזמנה </th>
+
+
+        </tr>
+    </tfoot>
+
+</table>
+
+
+<style>
+    #menu {
+        background-color: rgb(40 120 40 / 0.01);
+    }
+</style>
