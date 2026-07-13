@@ -1,159 +1,74 @@
 ﻿@model CoffeeShopOnline.Models.RegisterViewModel
 @{
-    ViewBag.Title = "Register";
+    ViewBag.Title = "הרשמה";
 }
 
-
-
-    
-            
-            
-
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
-
-<body>
-    <div class="container">
-        <div class="d-flex justify-content-center h-100">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Create a new account.</h4>
-
-                </div>
-                @using (Html.BeginForm("Register", "Account", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
-                {
-                    @Html.AntiForgeryToken()
-                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-                    <div class="card-body">
-                        <form>
-                            <div class="input-group form-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                </div>
-                                @Html.TextBoxFor(m => m.UserName, new { @class = "form-control", @placeholder = "User Name" })
-                                @Html.ValidationMessageFor(m => m.UserName, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="input-group form-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
-                                </div>
-                                @Html.PasswordFor(m => m.Password, new { @class = "form-control", @placeholder = "********" })
-                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
-                            </div>
-
-                            <div class="input-group form-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
-                                </div>
-                                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control" ,@placeholder = "********" })
-                                @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="input-group form-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                </div>
-                                @Html.TextBoxFor(m => m.FullName, new { @class = "form-control", @placeholder = "Full Name" })
-                                @Html.ValidationMessageFor(m => m.FullName, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="input-group form-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                </div>
-                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control" , @placeholder = "Email Address" })
-                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="input-group form-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text"><img src="https://img.icons8.com/office/16/000000/age.png" /></span>
-                                </div>
-                                @Html.TextBoxFor(m => m.Age, new { @class = "form-control" ,@placeholder ="Age" })
-                                @Html.ValidationMessageFor(m => m.Age, "", new { @class = "text-danger" })
-                            </div>
-                            <div class="form-group">
-                                <input type="submit" value="Register" class="btn float-right login_btn">
-                            </div>
-                        </form>
-                        <div class="card-footer">
-                            <div class="d-flex justify-content-center links">
-                                 have an account? @Html.ActionLink("Login", "Login")
-                            </div>
-
-                        </div>
-                    </div>
-
-                }
-            </div>
-
+<section class="auth-shell auth-register-shell">
+    <div class="auth-story">
+        <a class="step-back" href="@Url.Action("OnlineOrder", "Home")"><i class="bi bi-arrow-right"></i> חזרה להזמנה</a>
+        <span class="eyebrow">מועדון GTR Coffee</span>
+        <h1>יותר מקפה. חשבון שעובד בשבילכם.</h1>
+        <p>ההרשמה קצרה ומאפשרת לצבור כוכבים, לקבל קפה במתנה וליהנות מהזמנה מהירה יותר בביקור הבא.</p>
+        <div class="auth-benefits">
+            <span><i class="bi bi-cup-hot-fill"></i><strong>כוכב על כל קפה</strong><small>עשרה כוכבים מזכים בקפה מתנה</small></span>
+            <span><i class="bi bi-lightning-charge-fill"></i><strong>הזמנה מהירה</strong><small>החשבון מתחבר מיד לסל הפעיל</small></span>
+            <span><i class="bi bi-shield-check"></i><strong>סיסמה מאובטחת</strong><small>המידע נשמר באמצעות הצפנה חזקה</small></span>
         </div>
     </div>
-</body>
 
+    <div class="auth-card auth-card-wide">
+        <div class="auth-card-heading">
+            <span class="auth-icon"><i class="bi bi-person-plus"></i></span>
+            <div><span class="eyebrow">מצטרפים למועדון</span><h2>יצירת חשבון</h2></div>
+        </div>
 
+        @using (Html.BeginForm("Register", "Account", FormMethod.Post, new { @class = "auth-form", role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger", role = "alert" })
 
-<style>
-    /* Made with love by Mutiullah Samim*/
+            <div class="auth-form-grid">
+                <div class="auth-field">
+                    @Html.LabelFor(model => model.FullName, new { @class = "form-label" })
+                    @Html.TextBoxFor(model => model.FullName, new { @class = "form-control", autocomplete = "name", maxlength = "100", placeholder = "השם שיופיע בחשבון" })
+                    @Html.ValidationMessageFor(model => model.FullName, "", new { @class = "text-danger" })
+                </div>
+                <div class="auth-field">
+                    @Html.LabelFor(model => model.UserName, new { @class = "form-label" })
+                    @Html.TextBoxFor(model => model.UserName, new { @class = "form-control", autocomplete = "username", maxlength = "100", placeholder = "שם משתמש ייחודי" })
+                    @Html.ValidationMessageFor(model => model.UserName, "", new { @class = "text-danger" })
+                </div>
+                <div class="auth-field">
+                    @Html.LabelFor(model => model.Email, new { @class = "form-label" })
+                    @Html.TextBoxFor(model => model.Email, new { @class = "form-control", type = "email", autocomplete = "email", inputmode = "email", placeholder = "name@example.com" })
+                    @Html.ValidationMessageFor(model => model.Email, "", new { @class = "text-danger" })
+                </div>
+                <div class="auth-field">
+                    @Html.LabelFor(model => model.Age, new { @class = "form-label" })
+                    @Html.TextBoxFor(model => model.Age, new { @class = "form-control", type = "number", min = "1", max = "120", inputmode = "numeric", placeholder = "הגיל שלכם" })
+                    @Html.ValidationMessageFor(model => model.Age, "", new { @class = "text-danger" })
+                </div>
+                <div class="auth-field">
+                    @Html.LabelFor(model => model.Password, new { @class = "form-label" })
+                    @Html.PasswordFor(model => model.Password, new { @class = "form-control", autocomplete = "new-password", placeholder = "לפחות 8 תווים" })
+                    <small class="form-text">אות גדולה, אות קטנה ולפחות ספרה אחת.</small>
+                    @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                </div>
+                <div class="auth-field">
+                    @Html.LabelFor(model => model.ConfirmPassword, new { @class = "form-label" })
+                    @Html.PasswordFor(model => model.ConfirmPassword, new { @class = "form-control", autocomplete = "new-password", placeholder = "הקלידו שוב את הסיסמה" })
+                    @Html.ValidationMessageFor(model => model.ConfirmPassword, "", new { @class = "text-danger" })
+                </div>
+            </div>
 
-
-    html, body {
-        background-image: url('../../Images/התחברות/התחברות.jpg');
-        background-size: cover;
-        background-repeat: no-repeat;
-        height: 100%;
-        font-family: 'Numans', sans-serif;
-    }
-
-    .container {
-        height: 100%;
-        align-content: center;
-    }
-
-    .card {
-        height: 440px;
-        margin-top: -100px;
-        margin-bottom: auto;
-        width: 400px;
-        background-color: rgba(0,0,0,0.5) !important;
-    }
-
-    .card-header h3, h4 {
-        color: white;
-        font-family: "Poppins", sans-serif;
-    }
-
-   
-    .input-group-prepend span {
-        width: 50px;
-        background-color: #FFC312;
-        color: black;
-        border: 0 !important;
-    }
-
-    input:focus {
-        outline: 0 0 0 0 !important;
-        box-shadow: 0 0 0 0 !important;
-    }
-
-  
-
-      
-
-    .login_btn {
-        color: black;
-        background-color: #FFC312;
-        width: 100px;
-    }
-
-        .login_btn:hover {
-            color: black;
-            background-color: white;
+            <p class="auth-terms"><i class="bi bi-shield-check"></i> בלחיצה על הרשמה אתם מאשרים שמירת פרטי החשבון לצורך שירות והטבות.</p>
+            <button type="submit" class="btn btn-coffee btn-lg w-100">יצירת חשבון <i class="bi bi-arrow-left"></i></button>
         }
+        <div class="auth-switch">כבר יש לכם חשבון? @Html.ActionLink("כניסה", "Login", "Account")</div>
+    </div>
+</section>
 
-    .links {
-        color: white;
-    }
-
-        .links a {
-            margin-left: 4px;
-        }
-</style>
+@section scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}

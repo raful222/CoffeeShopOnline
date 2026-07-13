@@ -101,7 +101,7 @@ namespace CoffeeShopOnline.Controllers
                     return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
                 case SignInStatus.Failure:
                 default:
-                    ModelState.AddModelError("", "Invalid login attempt.");
+                    ModelState.AddModelError("", "שם המשתמש או הסיסמה אינם נכונים.");
                     return View(model);
             }
         }
@@ -154,10 +154,6 @@ namespace CoffeeShopOnline.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
-            List<SelectListItem> list = new List<SelectListItem>();
-            foreach (var role in RoleManager.Roles)
-                list.Add(new SelectListItem() { Value = role.Name, Text = role.Name });
-            ViewBag.Roles = list;
             return View();
         }
 
@@ -174,10 +170,13 @@ namespace CoffeeShopOnline.Controllers
                 var result = await UserManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                    result = await UserManager.AddToRoleAsync(user.Id, "Clients");
-                    user.stars = 0;
-                    /*                    result = await UserManager.AddToRoleAsync(user.Id, model.RoleName);
-                    */
+                    var roleResult = await UserManager.AddToRoleAsync(user.Id, "Clients");
+                    if (!roleResult.Succeeded)
+                    {
+                        await UserManager.DeleteAsync(user);
+                        AddErrors(roleResult);
+                        return View(model);
+                    }
                     await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
                     
                     // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
@@ -225,7 +224,7 @@ namespace CoffeeShopOnline.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = await UserManager.FindByNameAsync(model.Email);
+                var user = await UserManager.FindByEmailAsync(model.Email);
                 if (user == null || !(await UserManager.IsEmailConfirmedAsync(user.Id)))
                 {
                     // Don't reveal that the user does not exist or is not confirmed
@@ -271,7 +270,7 @@ namespace CoffeeShopOnline.Controllers
             {
                 return View(model);
             }
-            var user = await UserManager.FindByNameAsync(model.Email);
+            var user = await UserManager.FindByEmailAsync(model.Email);
             if (user == null)
             {
                 // Don't reveal that the user does not exist

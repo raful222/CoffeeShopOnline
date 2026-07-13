@@ -11,7 +11,7 @@ namespace CoffeeShopOnline.Models
         public string Email { get; set; }
         public string FullName { get; set; }
         public int Age { get; set; }
-        [Display(Name = "User Name")]
+        [Display(Name = "שם משתמש")]
         public string UserName { get; set; }
     }
 
@@ -58,15 +58,15 @@ namespace CoffeeShopOnline.Models
         public string Email { get; set; }
 
         [Required]
-        [Display(Name = "User Name")]
+        [Display(Name = "שם משתמש")]
         public string UserName { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
+        [Display(Name = "סיסמה")]
         public string Password { get; set; }
 
-        [Display(Name = "Remember me?")]
+        [Display(Name = "זכרו אותי במכשיר הזה")]
         public bool RememberMe { get; set; }
     }
 
@@ -74,29 +74,30 @@ namespace CoffeeShopOnline.Models
     {
         [Required]
         [EmailAddress]
-        [Display(Name = "Email")]
+        [Display(Name = "אימייל")]
         public string Email { get; set; }
 
         [Required]
-        [Display(Name = "User Name")]
+        [Display(Name = "שם משתמש")]
+        [StringLength(100, ErrorMessage = "שם המשתמש יכול להכיל עד 100 תווים.")]
         public string UserName { get; set; }
-        [Display(Name = "Full Name"),Required]
+        [Display(Name = "שם מלא"), Required]
+        [StringLength(100, ErrorMessage = "השם המלא יכול להכיל עד 100 תווים.")]
         public string FullName { get; set; }
 
-        [Display(Name = "Age")]
-        [Range(0 ,120,
-        ErrorMessage = "Value for {0} must be between {1} and {2}.")]
+        [Display(Name = "גיל")]
+        [Range(1, 120, ErrorMessage = "יש להזין גיל בין 1 ל-120.")]
         public int Age { get; set; }
         [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 8)]
+        [StringLength(100, ErrorMessage = "הסיסמה חייבת להכיל לפחות {2} תווים.", MinimumLength = 8)]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
+        [Display(Name = "סיסמה")]
         public string Password { get; set; }
 
         
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        [Display(Name = "אימות סיסמה")]
+        [Compare("Password", ErrorMessage = "הסיסמאות אינן תואמות.")]
         public string ConfirmPassword { get; set; }
         public string PhoneNumber { get; set; }
         public string RoleName { get; set; }

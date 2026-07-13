@@ -28,6 +28,11 @@ namespace CoffeeShopOnline
             {
                 AuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
                 LoginPath = new PathString("/Account/Login"),
+                CookieHttpOnly = true,
+                CookieSecure = CookieSecureOption.SameAsRequest,
+                CookieSameSite = SameSiteMode.Lax,
+                ExpireTimeSpan = TimeSpan.FromHours(8),
+                SlidingExpiration = true,
                 Provider = new CookieAuthenticationProvider
                 {
                     // Enables the application to validate the security stamp when the user logs in.
