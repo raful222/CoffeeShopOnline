@@ -1,10 +1,8 @@
-﻿using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Models;
 using CoffeeShopOnline.Services;
-using Microsoft.AspNet.Identity.Owin;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
 using static CoffeeShopOnline.Models.BaristaOrderViewModel;
 
@@ -13,203 +11,236 @@ namespace CoffeeShopOnline.Controllers
     [Authorize(Roles = "Admin,Baristas")]
     public class BaristaController : Controller
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
-        private decimal TotalAmount = 0.00M;
-        private List<ShoppingCartModel> listOfShoppingCartModel =new List<ShoppingCartModel>();
+        private const string CartKey = "Barista.Cart";
+        private const string DinerCountKey = "Barista.DinerCount";
+        private const string ClosedPartyKey = "Barista.ClosedParty";
+        private const string CustomerNameKey = "Barista.CustomerName";
+        private const string TableKey = "Barista.TableId";
+        private readonly ApplicationDbContext db = new ApplicationDbContext();
 
-        // GET: Barista
-        public ActionResult Index()
-        {
-            return View();
-        }
+        public ActionResult Index() { return RedirectToAction("BaristaOrder"); }
+
         public ActionResult BaristaOrder()
         {
-            return View();
-
+            return View(new WelcomeBaristaViewModel());
         }
 
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Table(WelcomeBaristaViewModel p)
+        [HttpPost, ValidateAntiForgeryToken]
+        public ActionResult Table(WelcomeBaristaViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View("BaristaOrder", p);
-            }
-            Session["UserName"] = p.UserName;
-            Session["count"] = p.NumberOfClient;
-            Session["Party"] = p.ClosedParty;
-            IEnumerable<RoomTable> ListRommTable = db.RoomTables.ToList() as IEnumerable<RoomTable>;
-            List<Order> order = db.Orders.OrderBy(x => x.TableNumber).ToList();
-            List<RoomTable> roomTable = db.RoomTables.ToList();
-            int orderCount = order.Count;
-            int roomTableCount = roomTable.Count;
-            for (int i = 0; i < roomTableCount; i++)
-            {
-                for (int j = 1; j < orderCount; j++)
-                {
-                    if (roomTable[i].TableNumber == order[j - 1].TableNumber &&
-                        roomTable[i].TableNumber != order[j].TableNumber
-                        )
-                    {
-                        if (DateTime.Now > order[j].TableSitTimeEnd)
-                            roomTable[i].Available = false;
-                    }
-                }
-            }
-            return View(ListRommTable);
+            if (!ModelState.IsValid) return View("BaristaOrder", model);
+
+            Session[CustomerNameKey] = string.IsNullOrWhiteSpace(model.UserName) ? "לקוח מזדמן" : model.UserName.Trim();
+            Session[DinerCountKey] = model.NumberOfClient;
+            Session[ClosedPartyKey] = model.ClosedParty;
+            Session.Remove(TableKey);
+            ClearCart();
+            ViewBag.GuestCount = model.NumberOfClient;
+            return View(GetTablesWithCurrentAvailability());
         }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public ActionResult CheckTable(string mine)
         {
-            RoomTable objItem = db.RoomTables.Single(model => model.Id.ToString() == mine);
-            int number = (int)Session["count"];
-            if (number <= objItem.TableSits)
-            {
-                Session["table"] = mine;
-                return RedirectToAction("Shopping", "Barista");
-            }
-            TempData["Message"] = "You Cant Sit at table that too small,Please Choose table again";
+            int tableId;
+            int dinerCount;
+            if (!int.TryParse(mine, out tableId) || !TryGetDinerCount(out dinerCount))
+                return RedirectToAction("BaristaOrder");
 
-            return RedirectToAction("Table");
+            var roomTable = db.RoomTables.SingleOrDefault(table => table.Id == tableId);
+            if (roomTable == null || roomTable.Available)
+            {
+                TempData["Message"] = "השולחן כבר אינו זמין. בחרו שולחן אחר.";
+                ViewBag.GuestCount = dinerCount;
+                return View("Table", GetTablesWithCurrentAvailability());
+            }
+            if (dinerCount > roomTable.TableSits)
+            {
+                TempData["Message"] = "השולחן קטן מדי למספר האורחים.";
+                ViewBag.GuestCount = dinerCount;
+                return View("Table", GetTablesWithCurrentAvailability());
+            }
+
+            Session[TableKey] = tableId;
+            return RedirectToAction("Shopping");
         }
 
-            public ActionResult Shopping()
-            {
-                var closeParty = Convert.ToBoolean(Session["Party"]);
-                var talbenumber = Convert.ToDecimal(Session["table"]);
-                
-                RoomTable roomTable = db.RoomTables.Single(model => model.Id == talbenumber);
-                IEnumerable<ShoppingViewModel> listOfShoppingViewModels = (from objItem in db.Items
-                                                                           join
-                                                                           objCate in db.Categories
-                                                                           on objItem.CatogoryId equals objCate.CategoryId
-                                                                           select new ShoppingViewModel()
-                                                                           {
-                                                                               ImagePath = objItem.ImagePath,
-                                                                               ItemName = objItem.ItemName,
-                                                                               ItemId = objItem.ItemId,
-                                                                               ItemPrice = objItem.ItemPrice,
-                                                                               Description = objItem.Decription,
-                                                                               Category = objCate.CetegoryName,
-                                                                               Popular = objItem.popular,
-                                                                               Quantity = objItem.Quantity,
-                                                                               Promo = objItem.Promo,
-                                                                               PromoPrice = objItem.PromoPrice,
-                                                                               InOrOutTable = roomTable.InOrOut,
-                                                                               ClosedParty = closeParty,
-                                                                           }
-                                                                          ).ToList();
-
-
-                return View(listOfShoppingViewModels);
-            }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public JsonResult Shopping(string ItemId)
+        public ActionResult Shopping()
         {
+            int tableId;
+            int dinerCount;
+            if (!TryGetTableId(out tableId) || !TryGetDinerCount(out dinerCount))
+                return RedirectToAction("BaristaOrder");
 
-            if (Session["TotalAmount"] != null)
-                TotalAmount = (decimal)Session["TotalAmount"];
-            ShoppingCartModel ob = new ShoppingCartModel();
-            Item objItem = db.Items.FirstOrDefault(model => model.ItemId.ToString() == ItemId);
-            if (Session["CartCounter"] != null)
+            var roomTable = db.RoomTables.SingleOrDefault(table => table.Id == tableId);
+            if (roomTable == null || roomTable.Available)
             {
-                listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
+                TempData["Message"] = "יש לבחור שולחן זמין לפני פתיחת התפריט.";
+                return RedirectToAction("BaristaOrder");
             }
-            if (listOfShoppingCartModel.Any(model => model.ItemId == ItemId))
-            {
 
-                ob = listOfShoppingCartModel.FirstOrDefault(model => model.ItemId == ItemId);
-                if (ob.TotalQuantity > 0)
-                {
-                    ob.Quantity = ob.Quantity + 1;
-                    ob.Total = ob.Quantity * ob.UnitPrice;
-                    ob.TotalQuantity = (int)(objItem.Quantity - ob.Quantity);
-                    TotalAmount += ob.Total;
-                }
-                else
-                {
-                    return Json(new { Success = false, Message = "No more " + objItem.ItemName + " item to add to cart,out of stack!", Counter = listOfShoppingCartModel.Count }, JsonRequestBehavior.AllowGet);
-                }
+            ViewBag.TableNumber = roomTable.TableNumber;
+            ViewBag.DinerCount = dinerCount;
+            ViewBag.CustomerName = Session[CustomerNameKey] as string;
+            ViewBag.CartCount = CartQuantity(GetCart());
+            var closedParty = Session[ClosedPartyKey] != null && Convert.ToBoolean(Session[ClosedPartyKey]);
+            var menu = (from item in db.Items
+                        join category in db.Categories on item.CatogoryId equals category.CategoryId
+                        select new ShoppingViewModel
+                        {
+                            ImagePath = item.ImagePath, ItemName = item.ItemName, ItemId = item.ItemId,
+                            ItemPrice = item.ItemPrice, Description = item.Decription, Category = category.CetegoryName,
+                            Popular = item.popular, Quantity = item.Quantity, Promo = item.Promo,
+                            PromoPrice = item.PromoPrice, PruductOfDay = item.PruductOfDay,
+                            InOrOutTable = roomTable.InOrOut, ClosedParty = closedParty
+                        }).ToList();
+            return View(menu);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public JsonResult Shopping(string itemId)
+        {
+            Guid parsedItemId;
+            if (!Guid.TryParse(itemId, out parsedItemId))
+                return Json(new { Success = false, Message = "הפריט שנבחר אינו תקין.", Counter = CartQuantity(GetCart()) });
+
+            var product = db.Items.SingleOrDefault(item => item.ItemId == parsedItemId);
+            if (product == null || product.Quantity <= 0)
+                return Json(new { Success = false, Message = "הפריט אינו זמין כרגע.", Counter = CartQuantity(GetCart()) });
+
+            var cart = GetCart();
+            var cartItem = cart.SingleOrDefault(item => item.ItemId == itemId);
+            if (cartItem != null)
+            {
+                if (cartItem.Quantity >= product.Quantity)
+                    return Json(new { Success = false, Message = "אין כמות נוספת במלאי עבור " + product.ItemName + ".", Counter = CartQuantity(cart) });
+                cartItem.Quantity++;
+                cartItem.Total = cartItem.Quantity * cartItem.UnitPrice;
+                cartItem.TotalQuantity = product.Quantity - (int)cartItem.Quantity;
             }
             else
             {
-                    ob.ItemId = ItemId;
-                    ob.ImagePath = objItem.ImagePath;
-                    ob.ItemName = objItem.ItemName;
-                    ob.Quantity = 1;
-                    if (objItem.Promo && (@DateTime.Now.Hour < 17 && DateTime.Now.Hour > 12))
-                    {
-                        ob.UnitPrice = objItem.PromoPrice;
-                        ob.Total = objItem.PromoPrice;
-                        TotalAmount += ob.UnitPrice;
-                    }
-                    else
-                    {
-                        ob.Total = (decimal)objItem.ItemPrice;
-                        ob.UnitPrice = (decimal)objItem.ItemPrice;
-                        TotalAmount += ob.UnitPrice;
-
-                    }
-                    ob.Category = objItem.CatogoryId;
-                    ob.TotalQuantity = objItem.Quantity - 1;
-
-                    listOfShoppingCartModel.Add(ob);
-                }
-
-            Session["TotalAmount"] = TotalAmount;
-            Session["CartCounter"] = listOfShoppingCartModel.Count;
-            Session["CartItem"] = listOfShoppingCartModel;
-
-            return Json(new { Success = true, Counter = listOfShoppingCartModel.Count }, JsonRequestBehavior.AllowGet);
-
+                var unitPrice = IsPromotionActive(product) ? product.PromoPrice : product.ItemPrice;
+                cart.Add(new ShoppingCartModel
+                {
+                    ItemId = itemId, ImagePath = product.ImagePath, ItemName = product.ItemName,
+                    Quantity = 1, UnitPrice = unitPrice, Total = unitPrice,
+                    Category = product.CatogoryId, TotalQuantity = product.Quantity - 1
+                });
+            }
+            SaveCart(cart);
+            return Json(new { Success = true, Counter = CartQuantity(cart) });
         }
-       
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+
+        public ActionResult BaristaCart()
+        {
+            ViewBag.TableNumber = GetSelectedTableNumber();
+            ViewBag.CustomerName = Session[CustomerNameKey] as string;
+            return View(GetCart());
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public ActionResult RemoveFromBaristaCart(string itemId)
+        {
+            var cart = GetCart();
+            cart.RemoveAll(item => item.ItemId == itemId);
+            SaveCart(cart);
+            return RedirectToAction("BaristaCart");
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
         public ActionResult AddOrderBarista()
         {
-            listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
-            if (listOfShoppingCartModel == null || listOfShoppingCartModel.Count == 0)
+            var cart = GetCart();
+            if (cart.Count == 0)
             {
                 TempData["NoItem"] = "הסל ריק. הוסיפו פריטים לפני שליחת ההזמנה.";
                 return RedirectToAction("Shopping");
             }
+
             int tableId;
             int dinerCount;
-            if (Session["table"] == null || !int.TryParse(Session["table"].ToString(), out tableId) ||
-                Session["count"] == null || !int.TryParse(Session["count"].ToString(), out dinerCount))
-            {
+            if (!TryGetTableId(out tableId) || !TryGetDinerCount(out dinerCount))
                 return RedirectToAction("BaristaOrder");
-            }
 
             var placement = new OrderPlacementService(db).PlaceOrder(new OrderPlacementRequest
             {
-                Cart = listOfShoppingCartModel,
-                TableId = tableId,
-                DinerCount = dinerCount,
-                UserName = Session["Username"] == null ? null : Session["Username"].ToString(),
-                IsApproved = true
+                Cart = cart, TableId = tableId, DinerCount = dinerCount,
+                UserName = Session[CustomerNameKey] as string, IsApproved = true
             });
             if (!placement.Success)
             {
-                if (placement.RequiresNewTable)
-                {
-                    TempData["SitIstaken"] = placement.Message;
-                    return RedirectToAction("BaristaOrder");
-                }
-                TempData["NoItem"] = placement.Message;
-                return RedirectToAction("Shopping");
+                TempData[placement.RequiresNewTable ? "SitIstaken" : "NoItem"] = placement.Message;
+                return RedirectToAction(placement.RequiresNewTable ? "BaristaOrder" : "BaristaCart");
             }
 
-            Session.Remove("CartItem");
-            Session.Remove("CartCounter");
-            Session.Remove("TotalAmount");
+            ClearOrderContext();
+            TempData["Message"] = "ההזמנה נשלחה למטבח ואושרה בהצלחה.";
+            return RedirectToAction("BaristaOrder");
+        }
 
-            return RedirectToAction("BaristaOrder", "Barista");
+        private List<RoomTable> GetTablesWithCurrentAvailability()
+        {
+            var tables = db.RoomTables.ToList();
+            var latestOrders = db.Orders.GroupBy(order => order.TableNumber)
+                .Select(group => new { TableNumber = group.Key, EndTime = group.Max(order => order.TableSitTimeEnd) }).ToList();
+            var changed = false;
+            foreach (var table in tables.Where(table => table.Available))
+            {
+                var latestOrder = latestOrders.SingleOrDefault(order => order.TableNumber == table.TableNumber);
+                if (latestOrder != null && DateTime.Now > latestOrder.EndTime)
+                {
+                    table.Available = false;
+                    changed = true;
+                }
+            }
+            if (changed) db.SaveChanges();
+            return tables;
+        }
 
+        private List<ShoppingCartModel> GetCart()
+        {
+            return Session[CartKey] as List<ShoppingCartModel> ?? new List<ShoppingCartModel>();
+        }
+
+        private void SaveCart(List<ShoppingCartModel> cart) { Session[CartKey] = cart; }
+        private void ClearCart() { Session.Remove(CartKey); }
+
+        private void ClearOrderContext()
+        {
+            ClearCart();
+            Session.Remove(DinerCountKey);
+            Session.Remove(ClosedPartyKey);
+            Session.Remove(CustomerNameKey);
+            Session.Remove(TableKey);
+        }
+
+        private bool TryGetDinerCount(out int value)
+        {
+            value = 0;
+            return Session[DinerCountKey] != null && int.TryParse(Session[DinerCountKey].ToString(), out value);
+        }
+
+        private bool TryGetTableId(out int value)
+        {
+            value = 0;
+            return Session[TableKey] != null && int.TryParse(Session[TableKey].ToString(), out value);
+        }
+
+        private int? GetSelectedTableNumber()
+        {
+            int tableId;
+            if (!TryGetTableId(out tableId)) return null;
+            return db.RoomTables.Where(table => table.Id == tableId).Select(table => (int?)table.TableNumber).SingleOrDefault();
+        }
+
+        private static int CartQuantity(IEnumerable<ShoppingCartModel> cart) { return (int)cart.Sum(item => item.Quantity); }
+        private static bool IsPromotionActive(Item item) { return item.Promo && DateTime.Now.Hour > 12 && DateTime.Now.Hour < 17; }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) db.Dispose();
+            base.Dispose(disposing);
         }
     }
 }

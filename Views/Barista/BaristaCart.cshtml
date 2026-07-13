@@ -1,0 +1,70 @@
+@model IEnumerable<CoffeeShopOnline.Models.ShoppingCartModel>
+@{
+    ViewBag.Title = "סל צוות";
+    var cart = Model == null ? new List<CoffeeShopOnline.Models.ShoppingCartModel>() : Model.ToList();
+    var total = cart.Sum(item => item.Total);
+    var tableNumber = ViewBag.TableNumber;
+    var customerName = ViewBag.CustomerName as string ?? "לקוח מזדמן";
+    var message = TempData["NoItem"] as string;
+}
+
+<section class="page-hero compact-hero staff-menu-hero">
+    <div>
+        <span class="eyebrow">עמדת צוות · בדיקה אחרונה</span>
+        <h1>סל ההזמנה</h1>
+        <p>@customerName@(tableNumber == null ? "" : " · שולחן " + tableNumber)</p>
+    </div>
+    @Html.ActionLink("חזרה לתפריט", "Shopping", "Barista", null, new { @class = "btn btn-outline-dark" })
+</section>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert alert-warning" role="alert">@message</div>
+}
+
+@if (cart.Count == 0)
+{
+    <div class="empty-state">
+        <i class="bi bi-bag-x"></i>
+        <h2>סל הצוות עדיין ריק</h2>
+        <p>חזרו לתפריט והוסיפו את הפריטים שביקש הלקוח.</p>
+        @Html.ActionLink("לתפריט הצוות", "Shopping", "Barista", null, new { @class = "btn btn-coffee" })
+    </div>
+}
+else
+{
+    <div class="cart-layout">
+        <div class="cart-list">
+            @foreach (var item in cart)
+            {
+                <article class="cart-item">
+                    <img src="@Url.Content(item.ImagePath)" alt="@item.ItemName" />
+                    <div class="cart-item-details">
+                        <h2>@item.ItemName</h2>
+                        <span>כמות: @item.Quantity.ToString("#,##0") · @item.UnitPrice.ToString("#,##0.00 ₪") ליחידה</span>
+                    </div>
+                    <strong>@item.Total.ToString("#,##0.00 ₪")</strong>
+                    @using (Html.BeginForm("RemoveFromBaristaCart", "Barista", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.Hidden("itemId", item.ItemId)
+                        <button class="icon-button" type="submit" aria-label="הסרת @item.ItemName מסל הצוות"><i class="bi bi-trash"></i></button>
+                    }
+                </article>
+            }
+        </div>
+        <aside class="order-summary staff-summary">
+            <span class="eyebrow">סיכום לצוות</span>
+            <div class="summary-row"><span>יחידות</span><span>@cart.Sum(item => item.Quantity).ToString("#,##0")</span></div>
+            <div class="summary-row"><span>שולחן</span><span>@tableNumber</span></div>
+            <div class="summary-row total"><span>סה״כ</span><strong>@total.ToString("#,##0.00 ₪")</strong></div>
+            <p class="staff-submit-note"><i class="bi bi-info-circle"></i> השליחה תאשר את ההזמנה ותעביר אותה ישירות למטבח.</p>
+            @using (Html.BeginForm("AddOrderBarista", "Barista", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-coffee btn-lg w-100">אישור ושליחה למטבח <i class="bi bi-arrow-left"></i></button>
+            }
+            @Html.ActionLink("להוסיף עוד פריטים", "Shopping", "Barista", null, new { @class = "back-link" })
+        </aside>
+    </div>
+}

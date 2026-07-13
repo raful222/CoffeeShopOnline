@@ -49,13 +49,10 @@ namespace CoffeeShopOnline.Services
         public OrderPlacementResult PlaceOrder(OrderPlacementRequest request)
         {
             if (request == null || request.Cart == null || request.Cart.Count == 0)
-            {
                 return OrderPlacementResult.Failed("הסל ריק. הוסיפו פריטים לפני שליחת ההזמנה.");
-            }
+
             if (request.DinerCount < 1 || request.DinerCount > 12)
-            {
                 return OrderPlacementResult.Failed("מספר האורחים אינו תקין.", true);
-            }
 
             var requestedLines = new List<Tuple<ShoppingCartModel, Guid, int>>();
             foreach (var line in request.Cart)
@@ -77,7 +74,7 @@ namespace CoffeeShopOnline.Services
                     if (table == null || table.Available || request.DinerCount > table.TableSits)
                     {
                         transaction.Rollback();
-                        return OrderPlacementResult.Failed("השולחן כבר אינו זמין או אינו מתאים להרכב. בחרו שולחן אחר.", true);
+                        return OrderPlacementResult.Failed("השולחן כבר אינו זמין או שאינו מתאים להרכב. בחרו שולחן אחר.", true);
                     }
 
                     var productIds = requestedLines.Select(line => line.Item2).Distinct().ToList();
@@ -85,7 +82,7 @@ namespace CoffeeShopOnline.Services
                     if (products.Count != productIds.Count)
                     {
                         transaction.Rollback();
-                        return OrderPlacementResult.Failed("אחד הפריטים כבר אינו זמין. רעננו את הסל ונסו שוב.");
+                        return OrderPlacementResult.Failed("אחד הפריטים בסל כבר אינו זמין. רעננו את הסל ונסו שוב.");
                     }
 
                     foreach (var requestedLine in requestedLines)
@@ -130,9 +127,7 @@ namespace CoffeeShopOnline.Services
                             rewardUsed = true;
                         }
                         if (user != null && product.CatogoryId == 1)
-                        {
                             user.stars += quantity;
-                        }
 
                         product.Quantity -= quantity;
                         product.popular += quantity;

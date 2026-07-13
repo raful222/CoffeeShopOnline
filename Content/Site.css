@@ -78,6 +78,12 @@ a { color: var(--coffee); }
 .order-entry-copy > p { max-width: 590px; color: var(--muted); font-size: 1.15rem; line-height: 1.8; }
 .order-benefits { display: flex; flex-wrap: wrap; gap: .8rem 1.3rem; margin-top: 2rem; color: var(--coffee-dark); font-weight: 600; }
 .order-benefits i { color: var(--sage); }
+.staff-entry { background: radial-gradient(circle at 10% 90%, rgba(47,90,70,.16), transparent 36%), linear-gradient(135deg, #f4efe7, #f9f7f2); }
+.staff-entry .order-benefits i { color: #2f5a46; }
+.staff-picker-hero { background: linear-gradient(125deg, #17231d 0%, #263e32 55%, #4d654f 100%); }
+.staff-menu-hero { background: linear-gradient(120deg, #e4eee8, #f8f4ec); }
+.staff-hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.staff-submit-note { margin: 1rem 0; padding: .85rem; border-radius: 12px; background: #f4efe7; color: var(--muted); font-size: .88rem; line-height: 1.55; }
 .reservation-card { padding: clamp(1.5rem, 4vw, 2.25rem); border: 1px solid rgba(111,69,40,.14); border-radius: 22px; background: rgba(255,255,255,.94); box-shadow: 0 22px 60px rgba(58,36,24,.12); }
 .reservation-card h2 { margin: .35rem 0 1.5rem; font-family: Heebo, Arial, sans-serif; font-size: 1.6rem; font-weight: 700; }
 .reservation-card .form-label { font-weight: 600; }

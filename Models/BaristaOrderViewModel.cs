@@ -12,13 +12,15 @@ namespace CoffeeShopOnline.Models
         public class WelcomeBaristaViewModel
         {
             [Required]
-            [Range(1, 12, ErrorMessage = "Value for {0} must be between {1} and {2}.")]
+            [Display(Name = "מספר אורחים")]
+            [Range(1, 12, ErrorMessage = "יש להזין מספר אורחים בין 1 ל-12.")]
             public int NumberOfClient { get; set; }
 
-            [DisplayName("You want to closed a Party menu or Regular?\n Sgin in if yes")]
-            [Required]
+            [Display(Name = "אירוע פרטי")]
             public bool ClosedParty { get; set; }
 
+            [Display(Name = "שם הלקוח או שם משתמש")]
+            [StringLength(100, ErrorMessage = "שם הלקוח יכול להכיל עד 100 תווים.")]
             public string UserName { get; set; }
 
         }

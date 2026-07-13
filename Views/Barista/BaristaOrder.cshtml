@@ -1,71 +1,58 @@
-﻿
-@model CoffeeShopOnline.Models.People
-
+@model CoffeeShopOnline.Models.BaristaOrderViewModel.WelcomeBaristaViewModel
 @{
-    ViewBag.Title = "Barista Order";
+    ViewBag.Title = "הזמנת בריסטה";
+    var message = TempData["Message"] as string;
+    var takenMessage = TempData["SitIstaken"] as string;
 }
-<script src="~/Scripts/jquery-3.6.0.min.js"></script>
-<script src="~/Scripts/jquery.validate.min.js"></script>
-<script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
-<div class="check" >
-    @using (Html.BeginForm("Table", "Barista", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
-    {
-        @Html.AntiForgeryToken()
 
-    <div class="form-horizontal" style=" font-family:'Berlin Sans FB';">
-
-        <h3 style=" font-family:'Berlin Sans FB';">
-            They have a Account?<br />
-            if yes put here their User Name<br />
-            else put their name:
-        </h3>
-        <div class="form-group">
-            <div class="col-md-12">
-                @Html.EditorFor(model => model.UserName)
-                <br />
-
-                @Html.ValidationMessageFor(model => model.UserName, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <h3 style=" font-family:'Berlin Sans FB';"> How many people They Are?</h3>
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
-
-        <div class="form-group">
-            <div class="col-md-12">
-                @Html.EditorFor(model => model.NumberOfClient)
-                <br />
-
-                @Html.ValidationMessageFor(model => model.NumberOfClient, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <div class="form-group">
-            <h3 style=" font-family:'Berlin Sans FB';">
-                Would they want close an event?
-            </h3>
-            <div class="col-md-12">
-                @Html.CheckBoxFor(model => model.ClosedParty, new { htmlAttributes = new { @class = "form-control" } })
-                <br />
-
-                @Html.ValidationMessageFor(model => model.ClosedParty, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-12">
-                <input type="submit" value="Create" class="btn btn-default" />
-            </div>
+<section class="order-entry staff-entry">
+    <div class="order-entry-copy">
+        <span class="eyebrow">עמדת צוות · הזמנה חדשה</span>
+        <h1>שירות מהיר, בלי לפספס פרט.</h1>
+        <p>הזינו את פרטי האירוח, בחרו שולחן והוסיפו את המנות. המלאי והזמינות ייבדקו שוב לפני השליחה למטבח.</p>
+        <div class="order-benefits">
+            <span><i class="bi bi-shield-check"></i> בדיקת מלאי בזמן אמת</span>
+            <span><i class="bi bi-grid-3x3-gap-fill"></i> סל עובד מבודד</span>
+            <span><i class="bi bi-lightning-charge-fill"></i> אישור מיידי למטבח</span>
         </div>
     </div>
-    }
 
-</div>
+    <div class="reservation-card">
+        <span class="eyebrow">שלב 1 מתוך 3</span>
+        <h2>פרטי האירוח</h2>
+        @if (!string.IsNullOrWhiteSpace(message) || !string.IsNullOrWhiteSpace(takenMessage))
+        {
+            <div class="alert alert-info" role="status">@(message ?? takenMessage)</div>
+        }
+        @using (Html.BeginForm("Table", "Barista", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
 
-<style>
-    .check {
-        text-align: center;
-    }
-</style>
+            <div class="mb-3">
+                @Html.LabelFor(model => model.UserName, new { @class = "form-label" })
+                @Html.TextBoxFor(model => model.UserName, new { @class = "form-control form-control-lg", maxlength = "100", autocomplete = "off", placeholder = "לדוגמה: דנה או dana@email.com" })
+                <small class="form-text">אפשר להשאיר ריק עבור לקוח מזדמן.</small>
+                @Html.ValidationMessageFor(model => model.UserName, "", new { @class = "text-danger" })
+            </div>
+
+            <div class="mb-4">
+                @Html.LabelFor(model => model.NumberOfClient, new { @class = "form-label" })
+                @Html.TextBoxFor(model => model.NumberOfClient, new { @class = "form-control form-control-lg", type = "number", min = "1", max = "12", inputmode = "numeric", placeholder = "לדוגמה: 4" })
+                @Html.ValidationMessageFor(model => model.NumberOfClient, "", new { @class = "text-danger" })
+            </div>
+
+            <label class="event-option" for="ClosedParty">
+                @Html.CheckBoxFor(model => model.ClosedParty)
+                <span><strong>אירוע פרטי</strong><small>הצגת מנות מתפריט האירועים</small></span>
+            </label>
+
+            <button type="submit" class="btn btn-coffee btn-lg w-100 mt-4">לבחירת שולחן <i class="bi bi-arrow-left"></i></button>
+        }
+    </div>
+</section>
+
+@section scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}

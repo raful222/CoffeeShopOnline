@@ -1,143 +1,119 @@
-﻿@model IEnumerable<CoffeeShopOnline.Models.RoomTable>
-
+@model IEnumerable<CoffeeShopOnline.Models.RoomTable>
+@using System.Linq
+@using System.Collections.Generic
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
-
-    ViewBag.Title = "TableInfo";
-    var message = TempData["Message"] ?? string.Empty;
-    <link href="~/assets/Layout/css/style.css" rel="stylesheet" />
+    ViewBag.Title = "בחירת שולחן לצוות";
+    var guestCount = ViewBag.GuestCount == null ? 0 : Convert.ToInt32(ViewBag.GuestCount);
+    var indoorTables = Model.Where(table => table.RoomType == "InSide").OrderBy(table => table.TableNumber).ToList();
+    var outdoorTables = Model.Where(table => table.RoomType == "OutSide").OrderBy(table => table.TableNumber).ToList();
+    var outsideIsOpen = DateTime.Now.DayOfWeek != DayOfWeek.Friday && DateTime.Now.DayOfWeek != DayOfWeek.Saturday;
+    var availableCount = indoorTables.Count(table => !table.Available && table.TableSits >= guestCount) +
+        (outsideIsOpen ? outdoorTables.Count(table => !table.Available && table.TableSits >= guestCount) : 0);
+    var message = TempData["Message"] as string;
 }
-<script type="text/javascript">
-var message = '@message';
-if(message)
-    alert(message);
-</script>
 
-@*<h3><strong>@TempData["Message"]</strong></h3>
-*@
-<script src="~/Scripts/jquery-3.6.0.min.js"></script>
-
-
-<h3 style="text-align:center"> בחר שולחן עבור הלקוח</h3>
-@using (Html.BeginForm("CheckTable", "Barista"))
-{
-    @Html.AntiForgeryToken()
-
-    <div class="container">
-        <h3>InSide Tables </h3>
-        <div class="row">
-            @foreach (var item in Model)
-            {
-                if (item.RoomType == "InSide")
-                {
-
-            <div class="col-12 col-md-3 col-lg-3 col-xl-3 ">
-
-                <br />
-
-                <div id="tablename" style="border-block:ridge">
-                    Table Number is  @item.TableNumber 
-
-                    Good For
-                    <div id="person">
-                        @for (int i = 0; i < item.TableSits; i++)
-                        {
-                            <i class="bi bi-person-fill"></i>
-                        }
-                    </div>
-                </div>
-
-                <br />
-                @if (!item.Available)
-                {
-                    <button type="submit" name="mine" value=@item.Id id="table">
-
-                        <img src="~/Images/ריבוע ירוק.png" />
-                    </button>
-
-                }
-                else
-
-                {
-                    <img src="~/Images/ריבוע אפור.jpg" />
-                    <h6>This Table is occupied </h6>
-
-                }
-
-
-
-
+<div class="table-picker">
+    <section class="table-picker-hero staff-picker-hero">
+        <div class="table-picker-hero-copy">
+            <a class="step-back" href="@Url.Action("BaristaOrder", "Barista")"><i class="bi bi-arrow-right"></i> שינוי פרטי האירוח</a>
+            <span class="eyebrow">עמדת צוות · שלב 2 מתוך 3</span>
+            <h1>בחרו שולחן.</h1>
+            <p>מוצגים רק השולחנות שמתאימים להרכב. הבחירה נבדקת פעם נוספת בצד השרת לפני פתיחת ההזמנה.</p>
+            <div class="reservation-meta">
+                <span><i class="bi bi-people-fill"></i> @guestCount אורחים</span>
+                <span><i class="bi bi-shield-check"></i> בדיקה כפולה</span>
+                <span><i class="bi bi-person-badge-fill"></i> מצב צוות</span>
             </div>
-
-                }
-            }
         </div>
+        <div class="availability-orb" aria-label="@availableCount שולחנות מתאימים">
+            <div class="availability-orb-ring"><strong>@availableCount</strong><span>שולחנות<br />מתאימים</span></div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="picker-alert" role="alert"><i class="bi bi-info-circle-fill"></i><span>@message</span></div>
+    }
+
+    <div class="picker-legend" aria-label="מקרא זמינות">
+        <span><i class="legend-dot available"></i> זמין לבחירה</span>
+        <span><i class="legend-dot unsuitable"></i> קטן מדי להרכב</span>
+        <span><i class="legend-dot occupied"></i> תפוס כרגע</span>
+        <span class="picker-hint"><i class="bi bi-cursor-fill"></i> בחירה תעביר מיד לתפריט</span>
     </div>
 
-    <br />
-    <br />
-    if (DateTime.Now.DayOfWeek != DayOfWeek.Friday && DateTime.Now.DayOfWeek != DayOfWeek.Saturday)
+    @using (Html.BeginForm("CheckTable", "Barista", FormMethod.Post))
     {
+        @Html.AntiForgeryToken()
+        @RenderSection("בפנים", "חלל ממוזג וקרוב לעמדת השירות", "bi-house-heart-fill", indoorTables, guestCount, "indoor")
+        if (outsideIsOpen)
+        {
+            @RenderSection("בחוץ", "גינת הקפה והאזור הפתוח", "bi-brightness-high-fill", outdoorTables, guestCount, "outdoor")
+        }
+        else
+        {
+            <section class="seating-section seating-closed">
+                <div class="closed-icon"><i class="bi bi-moon-stars-fill"></i></div>
+                <div><span class="eyebrow">האזור החיצוני סגור היום</span><h2>הישיבה זמינה בפנים</h2></div>
+            </section>
+        }
+    }
+</div>
 
-
-        <div class="container">
-            <h3>OutSide Tables </h3>
-
-            <div class="row">
-                @foreach (var item in Model)
+@helper RenderSection(string title, string description, string icon, IList<CoffeeShopOnline.Models.RoomTable> tables, int guestCount, string mapType)
+{
+    var suitable = tables.Where(table => !table.Available && table.TableSits >= guestCount).OrderBy(table => table.TableSits).ThenBy(table => table.TableNumber).ToList();
+    var recommendedId = suitable.Any() ? suitable.First().Id : -1;
+    <section class="seating-section">
+        <header class="seating-section-header">
+            <div class="section-icon"><i class="bi @icon"></i></div>
+            <div><span class="eyebrow">אזור ישיבה</span><h2>@title</h2><p>@description</p></div>
+            <span class="section-availability">@suitable.Count מתאימים</span>
+        </header>
+        <div class="seating-map seating-map-@mapType">
+            <span class="venue-marker marker-primary"><i class="bi @(mapType == "indoor" ? "bi-cup-hot" : "bi-flower1")"></i> @(mapType == "indoor" ? "בר וקפה" : "גינת הקפה")</span>
+            <div class="table-card-grid">
+                @foreach (var table in tables)
                 {
-                    if (item.RoomType == "OutSide")
+                    var isAvailable = !table.Available;
+                    var isSuitable = table.TableSits >= guestCount;
+                    var recommended = table.Id == recommendedId;
+                    if (isAvailable && isSuitable)
                     {
-
-                        <div class="col-12 col-md-3 col-lg-3 col-xl-3 ">
-
-                            <br />
-
-                            <div id="tablename" style="border-block:ridge">
-                                Table Number is  @item.TableNumber
-
-                                Good For
-                                <div id="person">
-                                    @for (int i = 0; i < item.TableSits; i++)
-                                    {
-                                        <i class="bi bi-person-fill"></i>
-                                    }
-                                </div>
-                            </div>
-
-                            <br />
-                            @if (!item.Available)
-                            {
-                                <button type="submit" name="mine" value=@item.Id  id="table">
-                                    <img src="~/Images/ריבוע ירוק.png" />
-
-                                </button>
-
-                            }
-                            else
-                            {
-                                <img src="~/Images/ריבוע אפור.jpg" />
-                                <h6>This Table is occupied </h6>
-
-                            }
-
+                        <button class="table-card is-available @(recommended ? "is-recommended" : "")" type="submit" name="mine" value="@table.Id" aria-label="בחירת שולחן @table.TableNumber, עד @table.TableSits אורחים">
+                            @CardContents(table, "available", recommended)
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="table-card @(isAvailable ? "is-unsuitable" : "is-occupied")" aria-label="שולחן @table.TableNumber @(isAvailable ? "קטן מדי" : "תפוס")" aria-disabled="true">
+                            @CardContents(table, isAvailable ? "unsuitable" : "occupied", false)
                         </div>
-
                     }
                 }
             </div>
         </div>
-    }
-    else
-    {
-        <h3>We Are Sorry in Friday and Saturday we dont have Siiting table OutSide </h3>
-    }
+    </section>
 }
-<style>
-    img {
-        border: 2px solid red;
-        border-radius: 8px;
-        width: 100px;
-        align-content: center
-    }
-</style>
+
+@helper CardContents(CoffeeShopOnline.Models.RoomTable table, string status, bool recommended)
+{
+    var available = status == "available";
+    <span class="table-card-topline">
+        <span class="table-number"><small>שולחן</small>@table.TableNumber</span>
+        <span class="table-status"><i class="status-pulse"></i>@(available ? "זמין" : status == "unsuitable" ? "קטן מדי" : "תפוס")</span>
+    </span>
+    if (recommended) { <span class="recommended-badge"><i class="bi bi-stars"></i> מומלץ להרכב</span> }
+    <span class="table-visual table-size-@(table.TableSits > 6 ? "large" : table.TableSits > 3 ? "medium" : "small")">
+        <span class="table-surface"><i class="bi bi-cup-hot-fill"></i></span>
+        @for (var chairIndex = 0; chairIndex < Math.Min(table.TableSits, 12); chairIndex++)
+        {
+            <span class="chair-slot" style="--chair-index: @chairIndex; --chair-count: @Math.Min(table.TableSits, 12);"><span class="chair-seat"></span></span>
+        }
+    </span>
+    <span class="table-card-bottom">
+        <span class="seat-count"><i class="bi bi-people"></i><strong>עד @table.TableSits</strong> אורחים</span>
+        @if (available) { <span class="choose-arrow"><i class="bi bi-arrow-left"></i></span> }
+        else { <span class="occupied-label">@(status == "unsuitable" ? "לא מתאים להרכב" : "לא זמין")</span> }
+    </span>
+}
