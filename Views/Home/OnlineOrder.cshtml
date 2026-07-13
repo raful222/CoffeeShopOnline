@@ -1,57 +1,45 @@
 ﻿@model CoffeeShopOnline.Models.People
-
 @{
-    ViewBag.Title = "Online Order";
+    ViewBag.Title = "הזמנה אונליין";
 }
-<script src="~/Scripts/jquery-3.6.0.min.js"></script>
-<script src="~/Scripts/jquery.validate.min.js"></script>
-<script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
-<div class="check">
-    @using (Html.BeginForm("TableInfo", "Home", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
-    {
-        @Html.AntiForgeryToken()
 
-        <div class="form-horizontal">
-            <h2>Welcome to GTR Coffee Stop<br /> How many people you are?</h2>
-            <hr />
-            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
-
-            <div class="form-group">
-                <div class="col-md-12">
-                    @Html.EditorFor(model => model.NumberOfClient)
-                    <br />
-
-                    @Html.ValidationMessageFor(model => model.NumberOfClient, "", new { @class = "text-danger" })
-                </div>
-            </div>
-
-            <div class="form-group">
-                <h3>
-                    Would you like to close an event?
-                </h3>
-                <div class="col-md-12">
-                    @Html.CheckBoxFor(model => model.ClosedParty, new { htmlAttributes = new { @class = "form-control" } })
-                    <br />
-
-                    @Html.ValidationMessageFor(model => model.ClosedParty, "", new { @class = "text-danger" })
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="col-md-offset-2 col-md-12">
-                    <input type="submit" value="Create" class="btn btn-default" />
-                </div>
-            </div>
+<section class="order-entry">
+    <div class="order-entry-copy">
+        <span class="eyebrow">ברוכים הבאים ל-GTR Coffee</span>
+        <h1>השולחן שלכם מחכה.</h1>
+        <p>ספרו לנו כמה אורחים מגיעים, בחרו שולחן פנוי והזמינו מהתפריט ישירות למטבח.</p>
+        <div class="order-benefits">
+            <span><i class="bi bi-check-circle-fill"></i> בחירת שולחן בזמן אמת</span>
+            <span><i class="bi bi-check-circle-fill"></i> תפריט עדכני ומלאי חי</span>
+            <span><i class="bi bi-check-circle-fill"></i> הטבות לחברי המועדון</span>
         </div>
-    }
+    </div>
 
-</div>
+    <div class="reservation-card">
+        <span class="eyebrow">מתחילים כאן</span>
+        <h2>כמה מקומות להכין?</h2>
+        @using (Html.BeginForm("TableInfo", "Home", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
 
-<style>
-    .check{
-        text-align:center;
+            <div class="mb-4">
+                @Html.LabelFor(model => model.NumberOfClient, "מספר אורחים", new { @class = "form-label" })
+                @Html.TextBoxFor(model => model.NumberOfClient, new { @class = "form-control form-control-lg", type = "number", min = "1", max = "12", inputmode = "numeric", placeholder = "לדוגמה: 4" })
+                @Html.ValidationMessageFor(model => model.NumberOfClient, "", new { @class = "text-danger" })
+            </div>
 
-    }
+            <label class="event-option" for="ClosedParty">
+                @Html.CheckBoxFor(model => model.ClosedParty)
+                <span><strong>אירוע פרטי</strong><small>הציגו גם את תפריט האירועים הסגורים</small></span>
+            </label>
 
-</style>
+            <button type="submit" class="btn btn-coffee btn-lg w-100 mt-4">הצגת שולחנות פנויים <i class="bi bi-arrow-left"></i></button>
+        }
+    </div>
+</section>
+
+@section scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}

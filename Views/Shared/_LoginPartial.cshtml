@@ -1,27 +1,17 @@
 ﻿@using Microsoft.AspNet.Identity
 @if (Request.IsAuthenticated)
 {
-    using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm", @class = "navbar-right" }))
+    <a class="header-action" href="@Url.Action("Index", "Manage")" title="ניהול החשבון">
+        <i class="bi bi-person-circle" aria-hidden="true"></i> @User.Identity.GetUserName()
+    </a>
+    using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm", @class = "d-inline" }))
     {
         @Html.AntiForgeryToken()
-
-        <ul class="nav navbar-nav navbar-brand">
-            <li>
-                @Html.ActionLink("Hello " + User.Identity.GetUserName() + "!", "Index", "Manage", routeValues: null, htmlAttributes: new { title = "Manage" })
-            </li>
-        </ul>
-        <li ><a  style="color:black;"href="javascript:document.getElementById('logoutForm').submit()">Log off</a></li>
-
+        <button type="submit" class="header-action header-action-button">יציאה</button>
     }
 }
 else
 {
-    <ul class="nav navbar-nav navbar-brand">
-        <li>@Html.ActionLink("Register", "Register", "Account", routeValues: null, htmlAttributes: new { id = "registerLink" })</li>
-    </ul>
-    <ul class="nav navbar-nav navbar-brand">
-        <li>@Html.ActionLink("Log in", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
-    </ul>
-
-
+    <a class="header-action" id="loginLink" href="@Url.Action("Login", "Account")"><i class="bi bi-person" aria-hidden="true"></i> כניסה</a>
+    <a class="btn btn-coffee btn-sm" id="registerLink" href="@Url.Action("Register", "Account")">הרשמה</a>
 }

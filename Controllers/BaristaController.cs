@@ -10,6 +10,7 @@ using static CoffeeShopOnline.Models.BaristaOrderViewModel;
 
 namespace CoffeeShopOnline.Controllers
 {
+    [Authorize(Roles = "Admin,Baristas")]
     public class BaristaController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -28,8 +29,14 @@ namespace CoffeeShopOnline.Controllers
         }
 
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult Table(WelcomeBaristaViewModel p)
         {
+            if (!ModelState.IsValid)
+            {
+                return View("BaristaOrder", p);
+            }
             Session["UserName"] = p.UserName;
             Session["count"] = p.NumberOfClient;
             Session["Party"] = p.ClosedParty;
@@ -99,6 +106,7 @@ namespace CoffeeShopOnline.Controllers
             }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult Shopping(string ItemId)
         {
 
@@ -160,6 +168,7 @@ namespace CoffeeShopOnline.Controllers
         }
        
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult AddOrderBarista()
         {
             var OrderId = 0;

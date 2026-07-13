@@ -40,33 +40,65 @@ namespace CoffeeShopOnline.Controllers
 
 
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult TableInfo(People p)
         {
+            if (!ModelState.IsValid)
+            {
+                return View("OnlineOrder", p);
+            }
+
             Session["count"] = p.NumberOfClient;
             Session["Party"] = p.ClosedParty;
-            IEnumerable<RoomTable> ListRommTable = db.RoomTables.ToList() as IEnumerable<RoomTable>;
-            List<Order> order = db.Orders.OrderBy(x => x.TableNumber).ToList();
-            List<RoomTable> roomTable = db.RoomTables.ToList();
-            int orderCount = order.Count;
-            int roomTableCount = roomTable.Count;
-            for (int i = 0; i < roomTableCount; i++)
+            return RedirectToAction("TableInfo");
+        }
+
+        [HttpGet]
+        public ActionResult TableInfo()
+        {
+            if (Session["count"] == null)
             {
-                for (int j = 1; j < orderCount; j++)
+                return RedirectToAction("OnlineOrder");
+            }
+
+            var tables = db.RoomTables.ToList();
+            var latestOrders = db.Orders
+                .GroupBy(order => order.TableNumber)
+                .Select(group => new { TableNumber = group.Key, EndTime = group.Max(order => order.TableSitTimeEnd) })
+                .ToList();
+            var availabilityChanged = false;
+            foreach (var table in tables.Where(table => table.Available))
+            {
+                var latestOrder = latestOrders.SingleOrDefault(order => order.TableNumber == table.TableNumber);
+                if (latestOrder != null && DateTime.Now > latestOrder.EndTime)
                 {
-                    if (roomTable[i].TableNumber == order[j-1].TableNumber &&
-                        roomTable[i].TableNumber != order[j].TableNumber
-                        )
-                    {
-                        if (DateTime.Now > order[j].TableSitTimeEnd)
-                        roomTable[i].Available = false;
-                    }
+                    table.Available = false;
+                    availabilityChanged = true;
                 }
             }
-            return View(ListRommTable);
+            if (availabilityChanged)
+            {
+                db.SaveChanges();
+            }
+
+            return View(tables);
         }
         public ActionResult CheckTable(string mine)
         {
-            RoomTable objItem = db.RoomTables.Single(model => model.Id.ToString() == mine);
+            int tableId;
+            if (!int.TryParse(mine, out tableId) || Session["count"] == null)
+            {
+                return RedirectToAction("OnlineOrder");
+            }
+
+            RoomTable objItem = db.RoomTables.SingleOrDefault(model => model.Id == tableId);
+            if (objItem == null || objItem.Available)
+            {
+                TempData["Message"] = "That table is no longer available. Please choose another one.";
+                return RedirectToAction("TableInfo");
+            }
+
             int number = (int)Session["count"];
             if (number <= objItem.TableSits)
             {
@@ -77,6 +109,15 @@ namespace CoffeeShopOnline.Controllers
 
             return RedirectToAction("TableInfo");
 
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

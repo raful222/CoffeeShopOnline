@@ -60,11 +60,16 @@ namespace CoffeeShopOnline
             //   appId: "",
             //   appSecret: "");
 
-            app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions()
+            var googleClientId = Environment.GetEnvironmentVariable("COFFEESHOP_GOOGLE_CLIENT_ID");
+            var googleClientSecret = Environment.GetEnvironmentVariable("COFFEESHOP_GOOGLE_CLIENT_SECRET");
+            if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
             {
-                ClientId = "923278078516-j7fu0o4egb0p1no3lbd8047sqacjr1g6.apps.googleusercontent.com",
-                ClientSecret = "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"
-            });
+                app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions
+                {
+                    ClientId = googleClientId,
+                    ClientSecret = googleClientSecret
+                });
+            }
         }
     }
 }

@@ -1,359 +1,300 @@
-﻿using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
-using System.Data.Entity.Migrations;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
-using System.Web;
 using System.Web.Mvc;
 
 namespace CoffeeShopOnline.Controllers
 {
     public class ShoppingController : Controller
     {
+        private readonly ApplicationDbContext db = new ApplicationDbContext();
 
-        private ApplicationDbContext db;
-        private List<ShoppingCartModel> listOfShoppingCartModel;
-        private decimal TotalAmount = 0.00M;
-
-        public ShoppingController()
-        {
-            db = new ApplicationDbContext();
-            listOfShoppingCartModel = new List<ShoppingCartModel>();
-        }
-        // GET: Shopping
         public ActionResult Index()
         {
+            int tableId;
+            if (Session["table"] == null || !int.TryParse(Session["table"].ToString(), out tableId))
+            {
+                TempData["Message"] = "Choose a table before browsing the menu.";
+                return RedirectToAction("OnlineOrder", "Home");
+            }
 
-            var closeParty = Convert.ToBoolean(Session["Party"]);
-            var talbenumber = Convert.ToDecimal(Session["table"]);
-            RoomTable roomTable = db.RoomTables.Single(model => model.Id == talbenumber);
-            IEnumerable<ShoppingViewModel> listOfShoppingViewModels = (from objItem in db.Items
-                                                                       join
-                                                                       objCate in db.Categories
-                                                                       on objItem.CatogoryId equals objCate.CategoryId
-                                                                       select new ShoppingViewModel()
-                                                                       {
-                                                                           ImagePath = objItem.ImagePath,
-                                                                           ItemName = objItem.ItemName,
-                                                                           ItemId = objItem.ItemId,
-                                                                           ItemPrice = objItem.ItemPrice,
-                                                                           Description = objItem.Decription,
-                                                                           ItemCode = objItem.ItemCode,
-                                                                           Category = objCate.CetegoryName,
-                                                                           Popular=objItem.popular,
-                                                                           Quantity=objItem.Quantity,
-                                                                           Promo=objItem.Promo,
-                                                                           PromoPrice=objItem.PromoPrice,
-                                                                           PruductOfDay=objItem.PruductOfDay, 
-                                                                           InOrOutTable=roomTable.InOrOut,
-                                                                           ClosedParty = closeParty,
-                                                                           DishOfDay=false
-                                                                       }
-                                                                      ).ToList();
+            var roomTable = db.RoomTables.SingleOrDefault(model => model.Id == tableId);
+            if (roomTable == null)
+            {
+                Session.Remove("table");
+                return RedirectToAction("OnlineOrder", "Home");
+            }
 
-            
-                return View(listOfShoppingViewModels);
+            var closeParty = Session["Party"] != null && Convert.ToBoolean(Session["Party"]);
+            var menu = (from item in db.Items
+                        join category in db.Categories on item.CatogoryId equals category.CategoryId
+                        select new ShoppingViewModel
+                        {
+                            ImagePath = item.ImagePath,
+                            ItemName = item.ItemName,
+                            ItemId = item.ItemId,
+                            ItemPrice = item.ItemPrice,
+                            Description = item.Decription,
+                            ItemCode = item.ItemCode,
+                            Category = category.CetegoryName,
+                            Popular = item.popular,
+                            Quantity = item.Quantity,
+                            Promo = item.Promo,
+                            PromoPrice = item.PromoPrice,
+                            PruductOfDay = item.PruductOfDay,
+                            InOrOutTable = roomTable.InOrOut,
+                            ClosedParty = closeParty,
+                            DishOfDay = false
+                        }).ToList();
+
+            return View(menu);
         }
 
         [HttpPost]
-        public JsonResult Index(string ItemId)
+        [ValidateAntiForgeryToken]
+        public JsonResult Index(string itemId)
         {
-            if(Session["TotalAmount"]!=null)
-                TotalAmount = (decimal)Session["TotalAmount"];
-            ShoppingCartModel ob = new ShoppingCartModel();
-            Item objItem = db.Items.Single(model => model.ItemId.ToString() == ItemId);
-            if (Session["CartCounter"] != null)
+            Guid parsedItemId;
+            if (!Guid.TryParse(itemId, out parsedItemId))
             {
-                listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
+                return Json(new { Success = false, Message = "The selected item is invalid." });
             }
-            if (listOfShoppingCartModel.Any(model => model.ItemId == ItemId))
+
+            var product = db.Items.SingleOrDefault(item => item.ItemId == parsedItemId);
+            if (product == null || product.Quantity <= 0)
             {
+                return Json(new { Success = false, Message = "This item is no longer available." });
+            }
 
-                ob = listOfShoppingCartModel.Single(model => model.ItemId == ItemId);
-                if (ob.TotalQuantity > 0)
+            var cart = GetCart();
+            var cartItem = cart.SingleOrDefault(item => item.ItemId == itemId);
+            if (cartItem != null)
+            {
+                if (cartItem.Quantity >= product.Quantity)
                 {
-                    ob.Quantity = ob.Quantity + 1;
-                    ob.Total = ob.Quantity * ob.UnitPrice;
-                    ob.TotalQuantity = (int)(objItem.Quantity - ob.Quantity);
-                    TotalAmount+= ob.Total;
-                }
-                else
-                {
-
-                    return Json(new { Success = false, Message = "No more " + objItem.ItemName + " item to add to cart,out of stack!", Counter = listOfShoppingCartModel.Count }, JsonRequestBehavior.AllowGet);
-
+                    return Json(new { Success = false, Message = "There is no more stock available for " + product.ItemName + ".", Counter = CartQuantity(cart) });
                 }
 
+                cartItem.Quantity++;
+                cartItem.Total = cartItem.Quantity * cartItem.UnitPrice;
+                cartItem.TotalQuantity = product.Quantity - (int)cartItem.Quantity;
             }
             else
             {
-                if (objItem.CatogoryId == 3)
+                if (product.CatogoryId == 3)
                 {
-                    var nv = User.Identity.Name;
-                    if (User.Identity.IsAuthenticated)
+                    var currentUser = User.Identity.IsAuthenticated
+                        ? db.Users.SingleOrDefault(user => user.UserName == User.Identity.Name)
+                        : null;
+                    if (currentUser == null || currentUser.Age < 18)
                     {
-                        var update = (from c in db.Users
-                                      where c.UserName == nv
-                                      select c).SingleOrDefault();
-                        if (update.Age >= 18)
-                        {
-                            ob.ItemId = ItemId;
-                            ob.ImagePath = objItem.ImagePath;
-                            ob.ItemName = objItem.ItemName;
-                            ob.Quantity = 1;
-                            ob.Total = (decimal)objItem.ItemPrice;
-                            ob.UnitPrice = (decimal)objItem.ItemPrice;
-                            ob.Category = objItem.CatogoryId;
-                            ob.TotalQuantity = objItem.Quantity - 1;
-                            TotalAmount += ob.UnitPrice;
-                            listOfShoppingCartModel.Add(ob);
-                        }
-                        else
-                        {
-                            return Json(new { Success = false, Message = "cant buy אלכוהול when you not 18+", Counter = listOfShoppingCartModel.Count }, JsonRequestBehavior.AllowGet);
-                        }
-                    }
-
-                    else
-                    {
-                        return Json(new { Success = false, Message = "cant buy אלכוהול when you not login", Counter = listOfShoppingCartModel.Count }, JsonRequestBehavior.AllowGet);
+                        return Json(new { Success = false, Message = "You must be signed in and at least 18 to order alcohol.", Counter = CartQuantity(cart) });
                     }
                 }
-                else
+
+                var unitPrice = IsPromotionActive(product) ? product.PromoPrice : product.ItemPrice;
+                cart.Add(new ShoppingCartModel
                 {
-                    ob.ItemId = ItemId;
-                    ob.ImagePath = objItem.ImagePath;
-                    ob.ItemName = objItem.ItemName;
-                    ob.Quantity = 1;
-                    if(objItem.Promo && (@DateTime.Now.Hour < 17 && DateTime.Now.Hour > 12))
-                    {
-                        ob.UnitPrice = objItem.PromoPrice;
-                        ob.Total = objItem.PromoPrice;
-                        TotalAmount += ob.UnitPrice;
-                    }
-                    else
-                    {
-                        ob.Total = (decimal)objItem.ItemPrice;
-                        ob.UnitPrice = (decimal)objItem.ItemPrice;
-                        TotalAmount += ob.UnitPrice;
-
-                    }
-                    ob.Category = objItem.CatogoryId;
-                    ob.TotalQuantity = objItem.Quantity - 1;
-
-                    listOfShoppingCartModel.Add(ob);
-                }
+                    ItemId = itemId,
+                    ImagePath = product.ImagePath,
+                    ItemName = product.ItemName,
+                    Quantity = 1,
+                    UnitPrice = unitPrice,
+                    Total = unitPrice,
+                    Category = product.CatogoryId,
+                    TotalQuantity = product.Quantity - 1
+                });
             }
 
-            Session["TotalAmount"] = TotalAmount;
-            Session["CartCounter"] = listOfShoppingCartModel.Count;
-            Session["CartItem"] = listOfShoppingCartModel;
-
-            return Json(new { Success = true, Counter = listOfShoppingCartModel.Count }, JsonRequestBehavior.AllowGet);
-
+            SaveCart(cart);
+            return Json(new { Success = true, Counter = CartQuantity(cart) });
         }
 
-        public ActionResult business_lunch()
+        public ActionResult Business_Lunch()
         {
-            IEnumerable<ShoppingViewModel> listOfShoppingViewModels = (from objItem in db.Items
-                                                                       join
-                                                                       objCate in db.Categories
-                                                                       on objItem.CatogoryId equals objCate.CategoryId
-                                                                       select new ShoppingViewModel()
-                                                                       {
-                                                                           ImagePath = objItem.ImagePath,
-                                                                           ItemName = objItem.ItemName,
-                                                                           ItemId = objItem.ItemId,
-                                                                           ItemPrice = objItem.ItemPrice,
-                                                                           Description = objItem.Decription,
-                                                                           ItemCode = objItem.ItemCode,
-                                                                           Category = objCate.CetegoryName,
-                                                                           Popular = objItem.popular,
-                                                                           Quantity = objItem.Quantity,
-                                                                           Promo = objItem.Promo,
-                                                                           PromoPrice = objItem.PromoPrice
+            var menu = (from item in db.Items
+                        join category in db.Categories on item.CatogoryId equals category.CategoryId
+                        select new ShoppingViewModel
+                        {
+                            ImagePath = item.ImagePath,
+                            ItemName = item.ItemName,
+                            ItemId = item.ItemId,
+                            ItemPrice = item.ItemPrice,
+                            Description = item.Decription,
+                            ItemCode = item.ItemCode,
+                            Category = category.CetegoryName,
+                            Popular = item.popular,
+                            Quantity = item.Quantity,
+                            Promo = item.Promo,
+                            PromoPrice = item.PromoPrice
+                        }).ToList();
 
-                                                                       }
-                                                                                  ).ToList();
-
-           
-            return View(listOfShoppingViewModels);
+            return View("business_lunch", menu);
         }
 
         public ActionResult ShoppingCart()
         {
-            listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
-            var Username = Session["Username"];
-            if (Username != null)
+            var cart = GetCart();
+            foreach (var item in cart)
             {
-                if (db.Users.Any(model => model.UserName == Username.ToString()))
-                {
-                    var update = (from c in db.Users
-                                  where c.UserName == Username.ToString()
-                                  select c).FirstOrDefault();
-                    if (update.stars >= 10)
-                    {
-                        foreach (var model in listOfShoppingCartModel)
-                        {
-                            if (model.Category == 1)
-                            {
-                                model.Total = model.Total - model.UnitPrice;
-                                TempData["Message"] = "you have one coffee for free " + model.UnitPrice + "Off from the bill";
-                                break;
-
-                            }
-                        }
-                    }
-                }
-                else
-                    return View(listOfShoppingCartModel);
-
-
+                item.Total = item.Quantity * item.UnitPrice;
             }
-            else
+
+            var user = User.Identity.IsAuthenticated
+                ? db.Users.SingleOrDefault(candidate => candidate.UserName == User.Identity.Name)
+                : null;
+            if (user != null && user.stars >= 10)
             {
-                var nva = User.Identity.Name;
-                if (User.Identity.IsAuthenticated)
+                var coffee = cart.FirstOrDefault(item => item.Category == 1);
+                if (coffee != null)
                 {
-                    var update = (from c in db.Users
-                                  where c.UserName == nva
-                                  select c).FirstOrDefault();
-
-                    if (update.stars >= 10)
-                    {
-                        foreach (var model in listOfShoppingCartModel)
-                        {
-                            if (model.Category == 1)
-                            {
-                                model.Total = model.Total - model.UnitPrice;
-                                TempData["Message"] = "you have one coffee for free " + model.UnitPrice + "Off from the bill";
-                                break;
-
-                            }
-                        }
-                    }
+                    coffee.Total -= coffee.UnitPrice;
+                    TempData["Message"] = "Your loyalty reward has been applied: one coffee is free.";
                 }
-
             }
-            return View(listOfShoppingCartModel);
+
+            SaveCart(cart);
+            return View(cart);
         }
-
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult AddOrder()
         {
-            int OrderId = 0;
-            listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
-            if (listOfShoppingCartModel.Count == 0)
+            var cart = GetCart();
+            int tableId;
+            int dinerCount;
+            if (cart.Count == 0)
             {
-                TempData["NoItem"] = "you dont have any item at the cart ";
-                return RedirectToAction("Index");
-
-
-            }
-            var talbenumber = Convert.ToDecimal(Session["table"]);
-            int numOfDiners = (int)Session["count"];
-            RoomTable roomTable = db.RoomTables.Single(model => model.Id == talbenumber);
-            if (roomTable.Available)
-            {
-                TempData["SitIstaken"] = "someone already take the sit  ";
+                TempData["NoItem"] = "Your cart is empty.";
                 return RedirectToAction("Index");
             }
-            roomTable.Available = true;
-            roomTable.NumberOfTaken++;
-            Order orderObj = new Order()
+            if (Session["table"] == null || !int.TryParse(Session["table"].ToString(), out tableId) ||
+                Session["count"] == null || !int.TryParse(Session["count"].ToString(), out dinerCount))
             {
-                NumberOfDiners = numOfDiners,
-                TableNumber = roomTable.TableNumber,
-                TableSitTimeEnd = DateTime.Now.AddHours(2),
-                OrderDate = DateTime.Now,
-                OrderNumber = String.Format("{0:ddmmyyyyHHmmsss}", DateTime.Now),
-            };
-            db.Orders.Add(orderObj);
-            db.SaveChanges();
-            OrderId = orderObj.OrderId;
-           
-            foreach (var item in listOfShoppingCartModel)
-            {
-                Item objItem = db.Items.Single(model => model.ItemId.ToString() == item.ItemId);
-
-                    var nv = User.Identity.Name;
-                    if (User.Identity.IsAuthenticated)
-                    {
-                        var update = (from c in db.Users
-                                      where c.UserName == nv
-                                      select c).SingleOrDefault();
-                        if (item.Category== 1)
-                        {
-                            if (update.stars >= 10)
-                            {
-                                item.UnitPrice = 0;
-                                update.stars-=10;
-                                TempData["Message"] = "you have one coffee for free ";
-                            }
-                        update.stars = (int)(update.stars + item.Quantity);
-                    }
-                };
-
-                    Guid customerProfileGuid = new Guid(item.ItemId);
-
-                    var upd = (from c in db.Items
-                               where c.ItemId == customerProfileGuid
-                               select c).SingleOrDefault();
-                    var q = item.Quantity;
-                    upd.popular = (int)(upd.popular + q);
-                    db.Entry(upd).State = EntityState.Modified;
-
-                    objItem.Quantity -= (int)item.Quantity;
-                    db.Entry(objItem).State = EntityState.Modified;
-                    db.SaveChanges();
-
-                    OrderDetail objOrderDetail = new OrderDetail();
-                    objOrderDetail.Total = item.Total;
-                    objOrderDetail.ItemId = item.ItemId;
-                    objOrderDetail.OrderId = OrderId;
-                    objOrderDetail.Quantity = item.Quantity;
-                    objOrderDetail.UintPrice = item.UnitPrice;
-                    db.OrderDetails.Add(objOrderDetail);
-                    db.SaveChanges();
-
-                
+                return RedirectToAction("OnlineOrder", "Home");
             }
-            Session["CartItem"] = null;
-            Session["CartCounter"] = null;
 
-            return RedirectToAction("OnlineOrder","Home");
-
-        }
-
-        public ActionResult RemoveFromCart(string ItemId)
-        {
-            listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
-            foreach (var item in listOfShoppingCartModel.ToArray())
+            using (var transaction = db.Database.BeginTransaction())
             {
-                if (item.ItemId == ItemId)
+                var table = db.RoomTables.SingleOrDefault(candidate => candidate.Id == tableId);
+                if (table == null || table.Available)
                 {
-                    listOfShoppingCartModel.Remove(item);
+                    TempData["SitIstaken"] = "That table was just taken. Please choose another one.";
+                    return RedirectToAction("OnlineOrder", "Home");
                 }
-                Session["CartItem"] = listOfShoppingCartModel;
 
+                var productIds = cart.Select(item => Guid.Parse(item.ItemId)).ToList();
+                var products = db.Items.Where(item => productIds.Contains(item.ItemId)).ToList();
+                if (products.Count != cart.Count || cart.Any(line => products.Single(item => item.ItemId.ToString() == line.ItemId).Quantity < line.Quantity))
+                {
+                    TempData["NoItem"] = "One or more items no longer have enough stock. Please review your cart.";
+                    transaction.Rollback();
+                    return RedirectToAction("ShoppingCart");
+                }
+
+                table.Available = true;
+                table.NumberOfTaken++;
+                var order = new Order
+                {
+                    NumberOfDiners = dinerCount,
+                    TableNumber = table.TableNumber,
+                    TableSitTimeEnd = DateTime.Now.AddHours(2),
+                    OrderDate = DateTime.Now,
+                    OrderNumber = DateTime.Now.ToString("yyyyMMddHHmmssfff")
+                };
+                db.Orders.Add(order);
+
+                var user = User.Identity.IsAuthenticated
+                    ? db.Users.SingleOrDefault(candidate => candidate.UserName == User.Identity.Name)
+                    : null;
+                var rewardUsed = false;
+                foreach (var line in cart)
+                {
+                    var product = products.Single(item => item.ItemId.ToString() == line.ItemId);
+                    product.Quantity -= (int)line.Quantity;
+                    product.popular += (int)line.Quantity;
+
+                    var lineTotal = line.Quantity * line.UnitPrice;
+                    if (!rewardUsed && user != null && user.stars >= 10 && line.Category == 1)
+                    {
+                        lineTotal -= line.UnitPrice;
+                        user.stars -= 10;
+                        rewardUsed = true;
+                    }
+                    if (user != null && line.Category == 1)
+                    {
+                        user.stars += (int)line.Quantity;
+                    }
+
+                    db.OrderDetails.Add(new OrderDetail
+                    {
+                        Total = lineTotal,
+                        ItemId = line.ItemId,
+                        Order = order,
+                        Quantity = line.Quantity,
+                        UintPrice = line.UnitPrice
+                    });
+                }
+
+                db.SaveChanges();
+                transaction.Commit();
             }
-            Session["CartItem"] = listOfShoppingCartModel;
 
-            return Redirect("ShoppingCart");
+            Session.Remove("CartItem");
+            Session.Remove("CartCounter");
+            Session.Remove("TotalAmount");
+            return RedirectToAction("OnlineOrder", "Home");
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult RemoveFromCart(string itemId)
+        {
+            var cart = GetCart();
+            cart.RemoveAll(item => item.ItemId == itemId);
+            SaveCart(cart);
+            return RedirectToAction("ShoppingCart");
+        }
 
+        [Authorize(Roles = "Admin,Baristas")]
         public async Task<ActionResult> AproveOrder()
         {
             return View(await db.Orders.ToListAsync());
-
         }
 
-        
-        
+        private List<ShoppingCartModel> GetCart()
+        {
+            return Session["CartItem"] as List<ShoppingCartModel> ?? new List<ShoppingCartModel>();
+        }
+
+        private void SaveCart(List<ShoppingCartModel> cart)
+        {
+            Session["CartItem"] = cart;
+            Session["CartCounter"] = CartQuantity(cart);
+            Session["TotalAmount"] = cart.Sum(item => item.Total);
+        }
+
+        private static int CartQuantity(IEnumerable<ShoppingCartModel> cart)
+        {
+            return (int)cart.Sum(item => item.Quantity);
+        }
+
+        private static bool IsPromotionActive(Item item)
+        {
+            return item.Promo && DateTime.Now.Hour > 12 && DateTime.Now.Hour < 17;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

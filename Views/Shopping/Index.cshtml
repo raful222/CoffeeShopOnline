@@ -1,166 +1,117 @@
 ﻿@model IEnumerable<CoffeeShopOnline.Models.ShoppingViewModel>
 @{
-    ViewBag.Title = "Index";
-    var message = TempData["Message"] ?? string.Empty;
-    var noItemMessage = TempData["NoItem"] ?? string.Empty;
-
+    ViewBag.Title = "התפריט";
+    var noItemMessage = TempData["NoItem"] as string;
 }
-@*<h3><strong>@TempData["Message"]</strong></h3>
-*@
-<script src="~/Scripts/jquery-3.6.0.js"></script>
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
 
-<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<section class="page-hero compact-hero">
+    <div>
+        <span class="eyebrow">טרי, מקומי ומוכן עכשיו</span>
+        <h1>מה בא לכם היום?</h1>
+        <p>בחרו מהתפריט, הוסיפו לסל ואנחנו נתחיל להכין.</p>
+    </div>
+    @Html.ActionLink("בחירת שולחן אחר", "OnlineOrder", "Home", null, new { @class = "btn btn-outline-dark" })
+</section>
 
-<script type="text/javascript">
-    $(document).ready(function () {
-        $('#example').DataTable({
-            "language": {
-                "lengthMenu": "Display _MENU_ records per page",
-                "zeroRecords": "Nothing found - sorry",
-                "info": "Showing page _PAGE_ of _PAGES_",
-                "infoEmpty": "No records available",
-                "infoFiltered": "(filtered from _MAX_ total records)"
-            }
-        });
-    });
+@if (!string.IsNullOrWhiteSpace(noItemMessage))
+{
+    <div class="alert alert-warning" role="alert">@noItemMessage</div>
+}
 
-    function AddToCart(item) {
-        var itemId = $(item).attr("itemid");
-        var formData = new FormData();
-        formData.append("ItemId", itemId);
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "add-to-cart-token" }))
+{
+    @Html.AntiForgeryToken()
+}
 
-        $.ajax({
-            async: true,
-            type: 'POST',
-            contentType: false,
-            processData: false,
-            data: formData,
-            url: '/Shopping/Index',
-            success: function (data) {
-                if (data.Success) {
-                    $("#cartItem").text("Cart(" + data.Counter + ")");
+<div class="menu-toolbar">
+    <label class="search-box">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <span class="visually-hidden">חיפוש בתפריט</span>
+        <input id="menu-search" type="search" placeholder="חיפוש קפה, מנה או קטגוריה..." autocomplete="off" />
+    </label>
+</div>
 
-                }
-                else {
-                    alert(data.Message);
-
-                }
-
-            },
-
-        });
-    }
-     var noItemMessage = '@noItemMessage';
-    if (noItemMessage)
-        alert(noItemMessage);
-
-</script>
-@TempData["SitIstaken"]
-<div class="col-10" style="text-align:center;">
-    @Html.ActionLink("בחר שולחן חדש", "OnlineOrder", "Home")
-    <br />
-    @Html.ActionLink("ארוחות עסקיות בלבד", "business_lunch")
-    <br />
-    <h3> :היא @DateTime.Now.DayOfWeek  מנת יום  ;</h3>
+<div class="menu-grid" id="menu-grid">
     @foreach (var item in Model)
     {
-
-        if (item.PruductOfDay)
+        var isLunchTime = DateTime.Now.Hour > 12 && DateTime.Now.Hour < 17;
+        var visible = (item.Category != "עסקיות צהריים" && item.Category != "רביעי ספשיילים" && item.Category != "תפריט אירוע")
+            || (item.Category == "רביעי ספשיילים" && DateTime.Now.DayOfWeek == DayOfWeek.Wednesday)
+            || (isLunchTime && item.Category == "עסקיות צהריים")
+            || (item.ClosedParty && item.Category == "תפריט אירוע");
+        if (visible)
         {
-            <h3> @item.ItemName</h3>
-            <h3> @item.Description</h3>
-            <td><img src="@Url.Content(item.ImagePath)" width="150" height="150" /></td>
-
+            var promotionalPrice = (item.Promo && isLunchTime) || (!item.InOrOutTable && item.Category == "אלכוהול");
+            <article class="menu-card" data-search="@((item.ItemName + " " + item.Category + " " + item.Description).ToLowerInvariant())">
+                <div class="menu-card-image">
+                    <img src="@Url.Content(item.ImagePath)" alt="@item.ItemName" loading="lazy" />
+                    <span class="category-badge">@item.Category</span>
+                    @if (item.PruductOfDay) { <span class="daily-badge"><i class="bi bi-star-fill"></i> מנת היום</span> }
+                </div>
+                <div class="menu-card-body">
+                    <div class="d-flex justify-content-between gap-3 align-items-start">
+                        <h2>@item.ItemName</h2>
+                        <strong class="price">@((promotionalPrice ? item.PromoPrice : item.ItemPrice).ToString("#,##0.00 ₪"))</strong>
+                    </div>
+                    <p>@item.Description</p>
+                    <div class="menu-card-footer">
+                        <span class="popularity"><i class="bi bi-heart-fill" aria-hidden="true"></i> @item.Popular הזמנות</span>
+                        @if (item.Quantity <= 0)
+                        {
+                            <span class="stock-out">אזל זמנית</span>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-coffee add-to-cart" data-item-id="@item.ItemId">
+                                <i class="bi bi-plus-lg" aria-hidden="true"></i> הוספה לסל
+                            </button>
+                        }
+                    </div>
+                </div>
+            </article>
         }
     }
 </div>
+<p id="no-results" class="empty-state d-none">לא מצאנו פריטים שמתאימים לחיפוש.</p>
 
-<table id="example" class="display" style="width: 100%; position: static; height: 100px " ;>
-    <thead>
-        <tr>
-            <th>קטגוריה</th>
-            <th>
-                מוצר
-            </th>
-            <th>תמונה</th>
-            <th>פירוט</th>
-            <th>מחיר</th>
-            <th>הכי פופלרי </th>
-            <th> הוסף להזמנה </th>
+@section scripts {
+<script>
+    (function () {
+        var token = document.querySelector('#add-to-cart-token input[name="__RequestVerificationToken"]').value;
+        var cards = Array.prototype.slice.call(document.querySelectorAll('.menu-card'));
+        var search = document.getElementById('menu-search');
 
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            if (@item.Category != "עסקיות צהריים" && item.Category != "רביעי ספשיילים" && item.Category != "תפריט אירוע"
-                            || item.Category == "רביעי ספשיילים" && DateTime.Now.DayOfWeek == DayOfWeek.Wednesday ||
-                            (@DateTime.Now.Hour < 17 && DateTime.Now.Hour > 12) && (item.Category == "עסקיות צהריים")
-                            || item.ClosedParty && item.Category == "תפריט אירוע")
+        search.addEventListener('input', function () {
+            var query = search.value.trim().toLowerCase();
+            var visible = 0;
+            cards.forEach(function (card) {
+                var matches = !query || card.getAttribute('data-search').indexOf(query) !== -1;
+                card.classList.toggle('d-none', !matches);
+                if (matches) visible++;
+            });
+            document.getElementById('no-results').classList.toggle('d-none', visible !== 0);
+        });
 
-            {
-
-
-                <tr id="menu">
-                    <td id="menu">@item.Category</td>
-                    <td>@item.ItemName </td>
-                    <td><img src="@Url.Content(item.ImagePath)" width="150" height="150" /></td>
-                    <td><b>@item.Description</b></td>
-
-                    @if ((@item.Promo && (@DateTime.Now.Hour < 17 && DateTime.Now.Hour > 12)) || (!item.InOrOutTable && item.Category == "אלכוהול"))
-                    {
-
-                        <td>
-                            <b>@item.PromoPrice.ToString(format: "#,##0.00 $")  </b>
-
-
-                        </td>
-
-                    }
-                    else
-                    {
-                        <td><b>@item.ItemPrice.ToString(format: "#,##0.00 $")</b></td>
-                    }
-                    <td>@item.Popular</td>
-                    @if (item.Quantity == 0)
-                    {
-                        <td>
-                            <b>This item out of stock</b>
-                        </td>
-                    }
-                    else
-                    {
-                        <td>
-                            <input type="button" name="AddToCart" value="Add To Cart" class="btn btn-primary" itemid="@item.ItemId" id="btnAddToCart" onclick="AddToCart(this)" />
-                        </td>
-                    }
-                </tr>
-
-            }
-        }
-    </tbody>
-    <tfoot>
-        <tr>
-            <th>קטגוריה</th>
-
-            <th>
-                מוצר
-            </th>
-            <th>תמונה</th>
-            <th>פירוט</th>
-            <th>מחיר</th>
-            <th>הכי פופלרי </th>
-            <th> הוסף להזמנה </th>
-
-
-        </tr>
-    </tfoot>
-
-</table>
-
-
-<style>
-    #menu {
-        background-color: rgb(40 120 40 / 0.01);
-    }
-</style>
+        document.addEventListener('click', function (event) {
+            var button = event.target.closest('.add-to-cart');
+            if (!button) return;
+            button.disabled = true;
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&itemId=' + encodeURIComponent(button.getAttribute('data-item-id'));
+            fetch('@Url.Action("Index", "Shopping")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body,
+                credentials: 'same-origin'
+            }).then(function (response) { return response.json(); }).then(function (result) {
+                if (!result.Success) throw new Error(result.Message || 'לא ניתן להוסיף את הפריט.');
+                var cart = document.getElementById('cartItem');
+                if (cart) cart.textContent = 'סל (' + result.Counter + ')';
+                button.innerHTML = '<i class="bi bi-check-lg"></i> נוסף';
+                window.setTimeout(function () { button.innerHTML = '<i class="bi bi-plus-lg"></i> הוספה לסל'; }, 1200);
+            }).catch(function (error) {
+                window.alert(error.message);
+            }).then(function () { button.disabled = false; });
+        });
+    }());
+</script>
+}

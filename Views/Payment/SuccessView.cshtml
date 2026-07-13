@@ -34,6 +34,7 @@
                             {
                                 using (Html.BeginForm("AddOrderBarista", "Barista", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
                                 {
+                                    @Html.AntiForgeryToken()
                                     <input type="submit" class="btn btn-default btn-lg" value="Take Me Home" /><span class="glyphicon glyphicon-home"></span>
                                 }
 
@@ -42,6 +43,7 @@
                             {
                                 using (Html.BeginForm("AddOrder", "Shopping", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
                                 {
+                                    @Html.AntiForgeryToken()
                                     <input type="submit" class="btn btn-default btn-lg" value="Take Me Home" /><span class="glyphicon glyphicon-home"></span>
 
                                 }

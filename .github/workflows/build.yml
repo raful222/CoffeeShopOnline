@@ -1,0 +1,26 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: msbuild CoffeeShopOnline.sln /t:Restore /p:RestorePackagesConfig=true /m
+
+      - name: Build
+        run: msbuild CoffeeShopOnline.sln /p:Configuration=Release /m

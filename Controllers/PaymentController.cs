@@ -2,8 +2,8 @@
 using PayPal.Api;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
 using Item = PayPal.Api.Item;
 
@@ -20,17 +20,21 @@ namespace CoffeeShopOnline.Controllers
 
         public ActionResult PaymentWithPaypal(string Cancel = null)
         {
-            //getting the apiContext
-            APIContext apiContext = PaypalConfiguration.GetAPIContext();
+            if (string.Equals(Cancel, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return View("FailureView");
+            }
+
             try
             {
+                var apiContext = PaypalConfiguration.GetAPIContext();
                 string payerId = Request.Params["PayerID"];
                 if (string.IsNullOrEmpty(payerId))
                 {
                     string baseURI = Request.Url.Scheme + "://" + Request.Url.Authority + "/Payment/PaymentWithPaypal?";
 
 
-                    var guid = Convert.ToString((new Random()).Next(100000));
+                    var guid = Guid.NewGuid().ToString("N");
                     var createdPayment = this.CreatePayment(apiContext, baseURI + "guid=" + guid);
                     var links = createdPayment.links.GetEnumerator();
                     string paypalRedirectUrl = null;
@@ -45,13 +49,23 @@ namespace CoffeeShopOnline.Controllers
                     }
                     // saving the paymentID in the key guid
                     Session.Add(guid, createdPayment.id);
+                    if (string.IsNullOrWhiteSpace(paypalRedirectUrl))
+                    {
+                        return View("FailureView");
+                    }
                     return Redirect(paypalRedirectUrl);
                 }
                 else
                 {
                     // This function exectues after receving all parameters for the payment
                     var guid = Request.Params["guid"];
-                    var executedPayment = ExecutePayment(apiContext, payerId, Session[guid] as string);
+                    var paymentId = Session[guid] as string;
+                    if (string.IsNullOrWhiteSpace(guid) || string.IsNullOrWhiteSpace(paymentId))
+                    {
+                        return View("FailureView");
+                    }
+                    var executedPayment = ExecutePayment(apiContext, payerId, paymentId);
+                    Session.Remove(guid);
                     //If executed payment failed then we will show payment failure message to user
                     if (executedPayment.state.ToLower() != "approved")
                     {
@@ -64,6 +78,7 @@ namespace CoffeeShopOnline.Controllers
 
             catch (Exception ex)
             {
+                System.Diagnostics.Trace.TraceError("PayPal payment failed: {0}", ex);
                 return View("FailureView");
             }
             //on successful payment, show success page to user.
@@ -89,21 +104,21 @@ namespace CoffeeShopOnline.Controllers
            
             var itemList = new ItemList() { items = new List<Item>() };
 
-            if (Session["CartItem"] != "")
+            var cart = Session["CartItem"] as List<ShoppingCartModel>;
+            if (cart == null || cart.Count == 0)
             {
-                List<ShoppingCartModel> cart = Session["CartItem"] as List<ShoppingCartModel>;
-                foreach (var item in cart)
+                throw new InvalidOperationException("The shopping cart is empty.");
+            }
+            foreach (var item in cart)
+            {
+                itemList.items.Add(new Item
                 {
-                    //Adding Item Details like name, currency, price etc
-                    itemList.items.Add(new Item()
-                    {
-                        name = item.ItemName,
-                        currency = "USD",
-                        price = item.UnitPrice.ToString(),
-                        quantity = item.Quantity.ToString(),
-                        sku = "sku"
-                    });
-                }
+                    name = item.ItemName,
+                    currency = "USD",
+                    price = item.UnitPrice.ToString("0.00", CultureInfo.InvariantCulture),
+                    quantity = item.Quantity.ToString("0", CultureInfo.InvariantCulture),
+                    sku = item.ItemId
+                });
             }
 
             var payer = new Payer() { payment_method = "paypal" };
@@ -116,19 +131,19 @@ namespace CoffeeShopOnline.Controllers
             };
 
             // Adding Tax, shipping and Subtotal details
+            var total = cart.Sum(item => item.UnitPrice * item.Quantity);
             var details = new Details()
             {
-                tax = "1",
-                shipping = "1",
-                subtotal = Session["TotalAmount"].ToString(),
-                shipping_discount = "-1"
+                tax = "0.00",
+                shipping = "0.00",
+                subtotal = total.ToString("0.00", CultureInfo.InvariantCulture)
             };
 
             //Final amount with details
             var amount = new Amount()
             {
                 currency = "USD",
-                total = (Convert.ToDecimal(Session["TotalAmount"]) + 1).ToString(), // Total must be equal to sum of tax, shipping and subtotal.
+                total = total.ToString("0.00", CultureInfo.InvariantCulture),
                 details = details
             };
 
@@ -136,8 +151,8 @@ namespace CoffeeShopOnline.Controllers
             // Adding description about the transaction
             transactionList.Add(new Transaction()
             {
-                description = "Transaction description",
-                invoice_number = Convert.ToString((new Random()).Next(100000)),
+                description = "GTR Coffee order",
+                invoice_number = Guid.NewGuid().ToString("N"),
                 amount = amount,
                 item_list = itemList
             });
@@ -155,9 +170,5 @@ namespace CoffeeShopOnline.Controllers
 
         }
 
-        [HttpPost]
-        public ActionResult SuccessView() {
-            return View();
-        }
     }
 }

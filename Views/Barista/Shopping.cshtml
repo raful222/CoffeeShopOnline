@@ -29,6 +29,7 @@
         var itemId = $(item).attr("itemid");
         var formData = new FormData();
         formData.append("ItemId", itemId);
+        formData.append("__RequestVerificationToken", document.querySelector('#barista-cart-token input[name="__RequestVerificationToken"]').value);
 
         $.ajax({
             async: true,
@@ -56,6 +57,10 @@
         alert(noItemMessage);
 
 </script>
+@using (Html.BeginForm(null, null, FormMethod.Post, new { id = "barista-cart-token" }))
+{
+    @Html.AntiForgeryToken()
+}
 <div class="col-10" style="text-align:center;">
     @Html.ActionLink(" החלף שולחן", "BaristaOrder", "Barista")
     <br />

@@ -1,23 +1,13 @@
 ﻿using PayPal.Api;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 
 namespace CoffeeShopOnline
 {
     public static class PaypalConfiguration
     {
-        //Variables for storing the clientID and clientSecret key
-        public readonly static string ClientId;
-        public readonly static string ClientSecret;
-        //Constructor
-        static PaypalConfiguration()
-        {
-            var config = GetConfig();
-            ClientId = config["clientId"];
-            ClientSecret = config["clientSecret"];
-        }
+        private const string ClientIdVariable = "COFFEESHOP_PAYPAL_CLIENT_ID";
+        private const string ClientSecretVariable = "COFFEESHOP_PAYPAL_CLIENT_SECRET";
         // getting properties from the web.config
         public static Dictionary<string, string> GetConfig()
         {
@@ -25,8 +15,15 @@ namespace CoffeeShopOnline
         }
         private static string GetAccessToken()
         {
-            // getting accesstocken from paypal
-            string accessToken = new OAuthTokenCredential(ClientId, ClientSecret, GetConfig()).GetAccessToken();
+            var clientId = Environment.GetEnvironmentVariable(ClientIdVariable);
+            var clientSecret = Environment.GetEnvironmentVariable(ClientSecretVariable);
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+            {
+                throw new InvalidOperationException(
+                    "PayPal is not configured. Set " + ClientIdVariable + " and " + ClientSecretVariable + ".");
+            }
+
+            string accessToken = new OAuthTokenCredential(clientId, clientSecret, GetConfig()).GetAccessToken();
             return accessToken;
         }
         public static APIContext GetAPIContext(string accessToken = "")

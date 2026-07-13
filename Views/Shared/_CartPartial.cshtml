@@ -1,14 +1,11 @@
-﻿<ul class="nav navbar-nav navbar-brand">
-    <li>
-        @if (Session["CartCounter"] == null)
-        {
-            @Html.ActionLink("Cart", "ShoppingCart", "Shopping", routeValues: null, new { id = "cartItem" })
-
-        }
-        else
-        {
-            @Html.ActionLink("Cart(" + Session["CartCounter"] + ")", "ShoppingCart", "Shopping", routeValues: null, new { id = "cartItem" })
-        }
-    </li>
-
-</ul>
+﻿@{
+    var count = Session["CartCounter"] == null ? 0 : Convert.ToInt32(Session["CartCounter"]);
+}
+<a href="@Url.Action("ShoppingCart", "Shopping")" id="cartItem" class="header-action" aria-label="סל קניות, @count פריטים">
+    <i class="bi bi-bag" aria-hidden="true"></i>
+    <span>סל</span>
+    @if (count > 0)
+    {
+        <span>(@count)</span>
+    }
+</a>

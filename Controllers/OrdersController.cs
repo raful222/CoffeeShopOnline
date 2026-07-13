@@ -11,6 +11,7 @@ using CoffeeShopOnline.Models;
 
 namespace CoffeeShopOnline.Controllers
 {
+    [Authorize(Roles = "Admin,Baristas")]
     public class OrdersController : Controller
     {
         private ApplicationDbContext db = new ApplicationDbContext();
