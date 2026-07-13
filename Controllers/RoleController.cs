@@ -53,6 +53,7 @@ namespace CoffeeShopOnline.Controllers
 
         [CustomAuthorizeArtribute(Roles = "Admin")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create(RoleViewModel model)
         {
             var role = new ApplicationRole() { Name = model.Name };
@@ -69,6 +70,7 @@ namespace CoffeeShopOnline.Controllers
 
         [CustomAuthorizeArtribute(Roles = "Admin")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> Edit(RoleViewModel model)
         {
             var role = new ApplicationRole() { Id = model.Id, Name = model.Name };
@@ -91,6 +93,8 @@ namespace CoffeeShopOnline.Controllers
         }
 
         [CustomAuthorizeArtribute(Roles = "Admin")]
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteConfirmed(string id)
         {
             var role = await RoleManager.FindByIdAsync(id);

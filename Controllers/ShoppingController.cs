@@ -1,4 +1,5 @@
 using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Services;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -178,70 +179,23 @@ namespace CoffeeShopOnline.Controllers
                 return RedirectToAction("OnlineOrder", "Home");
             }
 
-            using (var transaction = db.Database.BeginTransaction())
+            var placement = new OrderPlacementService(db).PlaceOrder(new OrderPlacementRequest
             {
-                var table = db.RoomTables.SingleOrDefault(candidate => candidate.Id == tableId);
-                if (table == null || table.Available)
+                Cart = cart,
+                TableId = tableId,
+                DinerCount = dinerCount,
+                UserName = User.Identity.IsAuthenticated ? User.Identity.Name : null,
+                IsApproved = false
+            });
+            if (!placement.Success)
+            {
+                if (placement.RequiresNewTable)
                 {
-                    TempData["SitIstaken"] = "That table was just taken. Please choose another one.";
+                    TempData["SitIstaken"] = placement.Message;
                     return RedirectToAction("OnlineOrder", "Home");
                 }
-
-                var productIds = cart.Select(item => Guid.Parse(item.ItemId)).ToList();
-                var products = db.Items.Where(item => productIds.Contains(item.ItemId)).ToList();
-                if (products.Count != cart.Count || cart.Any(line => products.Single(item => item.ItemId.ToString() == line.ItemId).Quantity < line.Quantity))
-                {
-                    TempData["NoItem"] = "One or more items no longer have enough stock. Please review your cart.";
-                    transaction.Rollback();
-                    return RedirectToAction("ShoppingCart");
-                }
-
-                table.Available = true;
-                table.NumberOfTaken++;
-                var order = new Order
-                {
-                    NumberOfDiners = dinerCount,
-                    TableNumber = table.TableNumber,
-                    TableSitTimeEnd = DateTime.Now.AddHours(2),
-                    OrderDate = DateTime.Now,
-                    OrderNumber = DateTime.Now.ToString("yyyyMMddHHmmssfff")
-                };
-                db.Orders.Add(order);
-
-                var user = User.Identity.IsAuthenticated
-                    ? db.Users.SingleOrDefault(candidate => candidate.UserName == User.Identity.Name)
-                    : null;
-                var rewardUsed = false;
-                foreach (var line in cart)
-                {
-                    var product = products.Single(item => item.ItemId.ToString() == line.ItemId);
-                    product.Quantity -= (int)line.Quantity;
-                    product.popular += (int)line.Quantity;
-
-                    var lineTotal = line.Quantity * line.UnitPrice;
-                    if (!rewardUsed && user != null && user.stars >= 10 && line.Category == 1)
-                    {
-                        lineTotal -= line.UnitPrice;
-                        user.stars -= 10;
-                        rewardUsed = true;
-                    }
-                    if (user != null && line.Category == 1)
-                    {
-                        user.stars += (int)line.Quantity;
-                    }
-
-                    db.OrderDetails.Add(new OrderDetail
-                    {
-                        Total = lineTotal,
-                        ItemId = line.ItemId,
-                        Order = order,
-                        Quantity = line.Quantity,
-                        UintPrice = line.UnitPrice
-                    });
-                }
-
-                db.SaveChanges();
-                transaction.Commit();
+                TempData["NoItem"] = placement.Message;
+                return RedirectToAction("ShoppingCart");
             }
 
             Session.Remove("CartItem");

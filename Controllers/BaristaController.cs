@@ -1,8 +1,8 @@
 ﻿using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Services;
 using Microsoft.AspNet.Identity.Owin;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
@@ -171,86 +171,42 @@ namespace CoffeeShopOnline.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult AddOrderBarista()
         {
-            var OrderId = 0;
             listOfShoppingCartModel = Session["CartItem"] as List<ShoppingCartModel>;
-            if (listOfShoppingCartModel.Count == 0)
+            if (listOfShoppingCartModel == null || listOfShoppingCartModel.Count == 0)
             {
-                TempData["NoItem"] = "you dont have any item at the cart ";
-                return RedirectToAction("Index");
-
-
+                TempData["NoItem"] = "הסל ריק. הוסיפו פריטים לפני שליחת ההזמנה.";
+                return RedirectToAction("Shopping");
             }
-            var talbenumber = Convert.ToDecimal(Session["table"]);
-            var Username = Session["Username"];
-            int numOfDiners = (int)Session["count"];
-            RoomTable roomTable = db.RoomTables.Single(model => model.Id == talbenumber);
-
-            if (roomTable.Available)
+            int tableId;
+            int dinerCount;
+            if (Session["table"] == null || !int.TryParse(Session["table"].ToString(), out tableId) ||
+                Session["count"] == null || !int.TryParse(Session["count"].ToString(), out dinerCount))
             {
-                TempData["SitIstaken"] = "someone already take the sit  ";
-                return RedirectToAction("Index");
+                return RedirectToAction("BaristaOrder");
             }
-            roomTable.Available = true;
-            roomTable.NumberOfTaken++;
 
-            Order orderObj = new Order()
+            var placement = new OrderPlacementService(db).PlaceOrder(new OrderPlacementRequest
             {
-                NumberOfDiners = numOfDiners,
-                TableNumber = roomTable.TableNumber,
-                TableSitTimeEnd = DateTime.Now.AddHours(2),
-                OrderDate = DateTime.Now,
-                OrderNumber = String.Format("{0:ddmmyyyyHHmmsss}", DateTime.Now),
-                IsAprroved = true
-            };
-            db.Orders.Add(orderObj);
-            db.SaveChanges();
-            OrderId = orderObj.OrderId;
-
-            foreach (var item in listOfShoppingCartModel)
+                Cart = listOfShoppingCartModel,
+                TableId = tableId,
+                DinerCount = dinerCount,
+                UserName = Session["Username"] == null ? null : Session["Username"].ToString(),
+                IsApproved = true
+            });
+            if (!placement.Success)
             {
-                Item objItem = db.Items.FirstOrDefault(model => model.ItemId.ToString() == item.ItemId);
-
-                if (Username != null && db.Users.Any(model => model.UserName == Username.ToString()))
+                if (placement.RequiresNewTable)
                 {
-                    var update = (from c in db.Users
-                                  where c.UserName == Username.ToString()
-                                  select c).FirstOrDefault();
-                    if (item.Category == 1)
-                    {
-                        if (update.stars >= 10)
-                        {
-                            item.UnitPrice = 0;
-                            update.stars -= 10;
-                            TempData["Message"] = "you have one coffee for free ";
-                        }
-                        update.stars = (int)(update.stars+item.Quantity);
-                    }
+                    TempData["SitIstaken"] = placement.Message;
+                    return RedirectToAction("BaristaOrder");
                 }
-                Guid customerProfileGuid = new Guid(item.ItemId);
-
-                var upd = (from c in db.Items
-                           where c.ItemId == customerProfileGuid
-                           select c).SingleOrDefault();
-                var q = item.Quantity;
-                upd.popular = (int)(upd.popular + q);
-                db.Entry(upd).State = EntityState.Modified;
-
-                objItem.Quantity -= (int)item.Quantity;
-                db.Entry(objItem).State = EntityState.Modified;
-                db.SaveChanges();
-
-                OrderDetail objOrderDetail = new OrderDetail();
-                objOrderDetail.Total = item.Total;
-                objOrderDetail.ItemId = item.ItemId;
-                objOrderDetail.OrderId = OrderId;
-                objOrderDetail.Quantity = item.Quantity;
-                objOrderDetail.UintPrice = item.UnitPrice;
-                db.OrderDetails.Add(objOrderDetail);
-                db.SaveChanges();
-
+                TempData["NoItem"] = placement.Message;
+                return RedirectToAction("Shopping");
             }
-            Session["CartItem"] = null;
-            Session["CartCounter"] = null;
+
+            Session.Remove("CartItem");
+            Session.Remove("CartCounter");
+            Session.Remove("TotalAmount");
 
             return RedirectToAction("BaristaOrder", "Barista");
 

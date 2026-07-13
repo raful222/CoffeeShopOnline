@@ -216,6 +216,7 @@
     <Compile Include="Controllers\RoleController.cs" />
     <Compile Include="Controllers\RoomTablesController.cs" />
     <Compile Include="Controllers\ShoppingController.cs" />
+    <Compile Include="Services\OrderPlacementService.cs" />
     <Compile Include="CustomAuthorizeArtribute.cs" />
     <Compile Include="CustomPasswordHasher.cs" />
     <Compile Include="Encrypt.cs" />

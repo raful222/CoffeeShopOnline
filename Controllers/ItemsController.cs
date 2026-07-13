@@ -56,9 +56,30 @@ namespace CoffeeShopOnline.Controllers
 
         [CustomAuthorizeArtribute(Roles = "Admin")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public  JsonResult Create(ItemViewModel obItemViewModel)
         {
-            string NewImage = Guid.NewGuid() + Path.GetExtension(obItemViewModel.ImagePath.FileName);
+            if (!ModelState.IsValid)
+            {
+                return Json(new { Success = false, Message = "בדקו את פרטי המנה ונסו שוב." });
+            }
+            if (obItemViewModel.ImagePath == null || obItemViewModel.ImagePath.ContentLength <= 0)
+            {
+                return Json(new { Success = false, Message = "יש לבחור תמונה למנה." });
+            }
+            if (obItemViewModel.ImagePath.ContentLength > 5 * 1024 * 1024)
+            {
+                return Json(new { Success = false, Message = "גודל התמונה יכול להיות עד 5MB." });
+            }
+
+            var extension = Path.GetExtension(obItemViewModel.ImagePath.FileName).ToLowerInvariant();
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            if (!allowedExtensions.Contains(extension) || !HasValidImageSignature(obItemViewModel.ImagePath))
+            {
+                return Json(new { Success = false, Message = "ניתן להעלות תמונת JPG, PNG או WebP תקינה בלבד." });
+            }
+
+            string NewImage = Guid.NewGuid() + extension;
             obItemViewModel.ImagePath.SaveAs(filename: Server.MapPath("~/Images/" + NewImage));
 
             Item objItem = new Item();
@@ -76,6 +97,25 @@ namespace CoffeeShopOnline.Controllers
             db.Items.Add(objItem);
             db.SaveChanges();
             return Json(new { Success = true, Message = "Item is added successfully." }, JsonRequestBehavior.AllowGet);
+        }
+
+        private static bool HasValidImageSignature(HttpPostedFileBase file)
+        {
+            var header = new byte[12];
+            var stream = file.InputStream;
+            var originalPosition = stream.CanSeek ? stream.Position : 0;
+            var bytesRead = stream.Read(header, 0, header.Length);
+            if (stream.CanSeek)
+            {
+                stream.Position = originalPosition;
+            }
+
+            var isJpeg = bytesRead >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF;
+            var isPng = bytesRead >= 8 && header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47 &&
+                        header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A;
+            var isWebP = bytesRead >= 12 && header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46 &&
+                         header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50;
+            return isJpeg || isPng || isWebP;
         }
 
         // GET: Items/Edit/5

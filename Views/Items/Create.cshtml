@@ -2,9 +2,7 @@
 @{
     ViewBag.Title = "Create";
 }
-<script language="JavaScript" type="text/javascript" src="/js/jquery-1.2.6.min.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="~/Scripts/jquery-3.6.0.min.js"></script>
 <h2>Add a new Item</h2>
 <script type="text/javascript">
     $(document).ready(function () {
@@ -37,6 +35,7 @@
         formData.append("Quantity", $("#Quantity").val());
         formData.append("Promo", $("#Promo").val());
         formData.append("PromoPrice", $("#PromoPrice").val());
+        formData.append("__RequestVerificationToken", document.querySelector('input[name="__RequestVerificationToken"]').value);
 
         formData.append("ImagePath", $("#ImagePath").get(0).files[0]);
 
@@ -52,6 +51,9 @@
                 if (data.Success) {
                     alert(data.Message);
                     ResetItem();
+                }
+                else {
+                    alert(data.Message);
                 }
 
             },
@@ -69,6 +71,7 @@
     });
 </script>
 <div class="container">
+    @Html.AntiForgeryToken()
     <div class="col-md-4">
         <div class="form-group">
             Category:
