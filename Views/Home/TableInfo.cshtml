@@ -5,10 +5,10 @@
     ViewBag.Title = "בחירת שולחן";
     var indoorTables = Model.Where(table => table.RoomType == "InSide").OrderBy(table => table.TableNumber).ToList();
     var outdoorTables = Model.Where(table => table.RoomType == "OutSide").OrderBy(table => table.TableNumber).ToList();
-    var availableCount = Model.Count(table => !table.Available);
     var guestCount = Session["count"] == null ? 0 : Convert.ToInt32(Session["count"]);
-    var message = TempData["Message"] as string;
     var outsideIsOpen = DateTime.Now.DayOfWeek != DayOfWeek.Friday && DateTime.Now.DayOfWeek != DayOfWeek.Saturday;
+    var availableCount = indoorTables.Count(table => !table.Available && table.TableSits >= guestCount) + (outsideIsOpen ? outdoorTables.Count(table => !table.Available && table.TableSits >= guestCount) : 0);
+    var message = TempData["Message"] as string;
 }
 
 <div class="table-picker">
@@ -39,6 +39,7 @@
 
     <div class="picker-legend" aria-label="מקרא זמינות">
         <span><i class="legend-dot available"></i> זמין לבחירה</span>
+        <span><i class="legend-dot unsuitable"></i> קטן מדי להרכב</span>
         <span><i class="legend-dot occupied"></i> תפוס כרגע</span>
         <span class="picker-hint"><i class="bi bi-cursor-fill"></i> לחצו על שולחן זמין כדי להמשיך</span>
     </div>
@@ -47,11 +48,11 @@
     {
         @Html.AntiForgeryToken()
 
-        @RenderTableSection("בפנים", "חלל ממוזג, אווירה שקטה וקרוב לבריסטה", "bi-house-heart-fill", indoorTables)
+        @RenderTableSection("בפנים", "חלל ממוזג, אווירה שקטה וקרוב לבריסטה", "bi-house-heart-fill", indoorTables, guestCount, "indoor")
 
         if (outsideIsOpen)
         {
-            @RenderTableSection("בחוץ", "אוויר פתוח, אור טבעי והאווירה של הרחוב", "bi-brightness-high-fill", outdoorTables)
+            @RenderTableSection("בחוץ", "אוויר פתוח, אור טבעי והאווירה של הרחוב", "bi-brightness-high-fill", outdoorTables, guestCount, "outdoor")
         }
         else
         {
@@ -60,6 +61,18 @@
                 <div><span class="eyebrow">האזור החיצוני סגור היום</span><h2>נשמח לארח אתכם בפנים</h2><p>בימי שישי ושבת הישיבה בחוץ אינה זמינה. כל השולחנות הפנימיים מופיעים למעלה.</p></div>
             </section>
         }
+
+        <aside class="selection-dock" id="selectionDock" aria-live="polite" data-state="empty">
+            <div class="selection-dock-icon"><i class="bi bi-stars"></i></div>
+            <div class="selection-dock-copy">
+                <span class="selection-kicker">הבחירה שלכם</span>
+                <strong id="selectedTableText">בחרו שולחן כדי להמשיך</strong>
+                <small id="selectedTableMeta">השולחנות המומלצים מסומנים עבור @guestCount אורחים</small>
+            </div>
+            <button class="selection-confirm" id="selectionConfirm" type="submit" disabled>
+                <span>אישור ומעבר לתפריט</span><i class="bi bi-arrow-left"></i>
+            </button>
+        </aside>
     }
 
     <div class="picker-confidence">
@@ -69,41 +82,53 @@
     </div>
 </div>
 
-@helper RenderTableSection(string title, string description, string icon, IList<CoffeeShopOnline.Models.RoomTable> tables)
+@helper RenderTableSection(string title, string description, string icon, IList<CoffeeShopOnline.Models.RoomTable> tables, int guestCount, string mapType)
 {
+    var suitableTables = tables.Where(table => !table.Available && table.TableSits >= guestCount).OrderBy(table => table.TableSits).ThenBy(table => table.TableNumber).ToList();
+    var recommendedId = suitableTables.Any() ? suitableTables.First().Id : -1;
     <section class="seating-section">
         <header class="seating-section-header">
             <div class="section-icon"><i class="bi @icon"></i></div>
             <div><span class="eyebrow">אזור ישיבה</span><h2>@title</h2><p>@description</p></div>
-            <span class="section-availability">@tables.Count(table => !table.Available) זמינים</span>
+            <span class="section-availability">@suitableTables.Count מתאימים לכם</span>
         </header>
 
-        <div class="table-card-grid">
+        <div class="seating-map seating-map-@mapType">
+            <span class="venue-marker marker-primary"><i class="bi @(mapType == "indoor" ? "bi-cup-hot" : "bi-flower1")"></i> @(mapType == "indoor" ? "בר וקפה" : "גינת הקפה")</span>
+            <span class="venue-marker marker-secondary"><i class="bi @(mapType == "indoor" ? "bi-window" : "bi-brightness-high")"></i> @(mapType == "indoor" ? "חלונות" : "אוויר פתוח")</span>
+            <div class="table-card-grid">
             @foreach (var table in tables)
             {
-                if (!table.Available)
+                var isAvailable = !table.Available;
+                var isSuitable = table.TableSits >= guestCount;
+                var isRecommended = table.Id == recommendedId;
+                if (isAvailable && isSuitable)
                 {
-                    <button type="submit" name="mine" value="@table.Id" class="table-card is-available" aria-label="בחירת שולחן @table.TableNumber, עד @table.TableSits אורחים">
-                        @TableCardContents(table, true)
-                    </button>
+                    <label class="table-card is-available @(isRecommended ? "is-recommended" : "")" aria-label="בחירת שולחן @table.TableNumber, עד @table.TableSits אורחים">
+                        <input class="table-choice" type="radio" name="mine" value="@table.Id" data-table="@table.TableNumber" data-seats="@table.TableSits" data-zone="@title" required />
+                        @TableCardContents(table, "available", isRecommended)
+                    </label>
                 }
                 else
                 {
-                    <div class="table-card is-occupied" aria-label="שולחן @table.TableNumber תפוס">
-                        @TableCardContents(table, false)
+                    <div class="table-card @(isAvailable ? "is-unsuitable" : "is-occupied")" aria-label="שולחן @table.TableNumber @(isAvailable ? "קטן מדי" : "תפוס")" aria-disabled="true">
+                        @TableCardContents(table, isAvailable ? "unsuitable" : "occupied", false)
                     </div>
                 }
             }
+            </div>
         </div>
     </section>
 }
 
-@helper TableCardContents(CoffeeShopOnline.Models.RoomTable table, bool available)
+@helper TableCardContents(CoffeeShopOnline.Models.RoomTable table, string status, bool recommended)
 {
+    var available = status == "available";
     <span class="table-card-topline">
         <span class="table-number"><small>שולחן</small>@table.TableNumber</span>
-        <span class="table-status"><i class="status-pulse"></i>@(available ? "זמין" : "תפוס")</span>
+        <span class="table-status"><i class="status-pulse"></i>@(available ? "זמין" : status == "unsuitable" ? "קטן מדי" : "תפוס")</span>
     </span>
+    if (recommended) { <span class="recommended-badge"><i class="bi bi-stars"></i> הבחירה המומלצת</span> }
     <span class="table-visual table-size-@(table.TableSits > 6 ? "large" : table.TableSits > 3 ? "medium" : "small")">
         <span class="table-surface"><i class="bi bi-cup-hot-fill"></i></span>
         <span class="chair chair-top"></span><span class="chair chair-right"></span><span class="chair chair-bottom"></span><span class="chair chair-left"></span>
@@ -111,6 +136,37 @@
     <span class="table-card-bottom">
         <span class="seat-count"><i class="bi bi-people"></i><strong>עד @table.TableSits</strong> אורחים</span>
         @if (available) { <span class="choose-arrow"><i class="bi bi-arrow-left"></i></span> }
-        else { <span class="occupied-label">לא זמין</span> }
+        else { <span class="occupied-label">@(status == "unsuitable" ? "לא מתאים להרכב" : "לא זמין")</span> }
     </span>
+}
+
+@section scripts {
+    <script>
+        (function () {
+            function initialiseTablePicker() {
+                var choices = document.querySelectorAll('.table-choice');
+                var dock = document.getElementById('selectionDock');
+                var title = document.getElementById('selectedTableText');
+                var meta = document.getElementById('selectedTableMeta');
+                var confirm = document.getElementById('selectionConfirm');
+                if (!dock || !title || !meta || !confirm) return;
+
+                Array.prototype.forEach.call(choices, function (choice) {
+                    choice.addEventListener('change', function () {
+                        Array.prototype.forEach.call(document.querySelectorAll('.table-card.is-selected'), function (card) {
+                            card.classList.remove('is-selected');
+                        });
+                        choice.parentElement.classList.add('is-selected');
+                        title.textContent = 'שולחן ' + choice.getAttribute('data-table') + ' נבחר';
+                        meta.textContent = choice.getAttribute('data-zone') + ' · עד ' + choice.getAttribute('data-seats') + ' אורחים';
+                        dock.setAttribute('data-state', 'selected');
+                        confirm.disabled = false;
+                    });
+                });
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialiseTablePicker);
+            else initialiseTablePicker();
+        }());
+    </script>
 }

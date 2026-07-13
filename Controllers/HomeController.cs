@@ -97,7 +97,7 @@ namespace CoffeeShopOnline.Controllers
             RoomTable objItem = db.RoomTables.SingleOrDefault(model => model.Id == tableId);
             if (objItem == null || objItem.Available)
             {
-                TempData["Message"] = "That table is no longer available. Please choose another one.";
+                TempData["Message"] = "השולחן שבחרתם כבר אינו זמין. בחרו שולחן אחר ונמשיך מיד.";
                 return RedirectToAction("TableInfo");
             }
 
@@ -107,7 +107,7 @@ namespace CoffeeShopOnline.Controllers
                 Session["table"] = mine;
                 return RedirectToAction("Index", "Shopping");
             }
-            TempData["Message"] = "You Cant Sit at table that too small,Please Choose table again";
+            TempData["Message"] = "השולחן שבחרתם קטן מדי למספר האורחים. סימנו עבורכם את השולחנות המתאימים.";
 
             return RedirectToAction("TableInfo");
 
