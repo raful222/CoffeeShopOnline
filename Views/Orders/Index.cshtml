@@ -1,64 +1,182 @@
-﻿@model IEnumerable<CoffeeShopOnline.Models.Order>
+﻿@model CoffeeShopOnline.Models.OrderDashboardViewModel
+@using System.Globalization
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "לוח הזמנות";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var culture = CultureInfo.GetCultureInfo("he-IL");
 }
 
-<h2>Index</h2>
+<section class="orders-workspace" aria-labelledby="orders-title">
+    <header class="orders-command-bar">
+        <div>
+            <span class="eyebrow">מרכז תפעול</span>
+            <h1 id="orders-title">לוח ההזמנות</h1>
+            <p>כל מה שצריך למשמרת רגועה: הזמנות חדשות, שולחנות פעילים ופרטי הכנה במקום אחד.</p>
+        </div>
+        <div class="orders-live-state" aria-label="זמן עדכון אחרון">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span>מעודכן עכשיו</span>
+            <strong>@Model.UpdatedAt.ToString("HH:mm")</strong>
+        </div>
+    </header>
 
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.OrderDate)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.OrderNumber)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.TableSitTimeEnd)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.TableNumber)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.NumberOfDiners)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.IsAprroved)
-        </th>
-        <th></th>
-    </tr>
+    @if (TempData["OrderMessage"] != null)
+    {
+        var messageType = Convert.ToString(TempData["OrderMessageType"]) == "warning" ? "warning" : "success";
+        <div class="order-notice order-notice-@messageType" role="status">
+            <i class="bi @(messageType == "success" ? "bi-check-circle" : "bi-exclamation-circle")" aria-hidden="true"></i>
+            <span>@TempData["OrderMessage"]</span>
+        </div>
+    }
 
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.OrderDate)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.OrderNumber)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.TableSitTimeEnd)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.TableNumber)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.NumberOfDiners)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.IsAprroved)
-        </td>
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.OrderId }) |
-            @Html.ActionLink("Details", "Details", new { id=item.OrderId }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.OrderId })
-        </td>
-    </tr>
+    <div class="order-metrics" aria-label="סיכום משמרת">
+        <article class="order-metric metric-pending">
+            <span class="metric-icon"><i class="bi bi-bell" aria-hidden="true"></i></span>
+            <div><small>ממתינות לאישור</small><strong>@Model.PendingCount</strong></div>
+        </article>
+        <article class="order-metric metric-active">
+            <span class="metric-icon"><i class="bi bi-cup-hot" aria-hidden="true"></i></span>
+            <div><small>בטיפול עכשיו</small><strong>@Model.ActiveCount</strong></div>
+        </article>
+        <article class="order-metric">
+            <span class="metric-icon"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+            <div><small>הושלמו לאחרונה</small><strong>@Model.CompletedCount</strong></div>
+        </article>
+        <article class="order-metric metric-revenue">
+            <span class="metric-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+            <div><small>מכירות היום</small><strong>@Model.TodayRevenue.ToString("C0", culture)</strong></div>
+        </article>
+    </div>
+
+    <div class="orders-toolbar">
+        <div class="order-filters" role="group" aria-label="סינון הזמנות">
+            <button type="button" class="order-filter is-active" data-filter="open">פתוחות <span>@(Model.PendingCount + Model.ActiveCount)</span></button>
+            <button type="button" class="order-filter" data-filter="pending">ממתינות <span>@Model.PendingCount</span></button>
+            <button type="button" class="order-filter" data-filter="active">בטיפול <span>@Model.ActiveCount</span></button>
+            <button type="button" class="order-filter" data-filter="completed">הושלמו <span>@Model.CompletedCount</span></button>
+            <button type="button" class="order-filter" data-filter="all">הכול <span>@Model.Orders.Count</span></button>
+        </div>
+        <label class="orders-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <span class="visually-hidden">חיפוש לפי שולחן או מספר הזמנה</span>
+            <input id="orderSearch" type="search" placeholder="חיפוש שולחן או הזמנה" autocomplete="off" />
+        </label>
+    </div>
+
+    <div id="ordersGrid" class="orders-grid">
+        @foreach (var order in Model.Orders)
+        {
+            var statusLabel = order.StatusKey == "pending" ? "ממתינה לאישור" : order.StatusKey == "active" ? "בטיפול" : "הושלמה";
+            var minutesLeft = Math.Max(0, (int)Math.Ceiling((order.TableSitTimeEnd - Model.UpdatedAt).TotalMinutes));
+            <article class="order-ticket status-@order.StatusKey" data-status="@order.StatusKey" data-search="@order.TableNumber @order.OrderNumber">
+                <div class="order-ticket-head">
+                    <div class="order-table-number">
+                        <small>שולחן</small>
+                        <strong>@order.TableNumber</strong>
+                    </div>
+                    <span class="order-status"><span aria-hidden="true"></span>@statusLabel</span>
+                </div>
+
+                <div class="order-ticket-meta">
+                    <span><i class="bi bi-people" aria-hidden="true"></i> @order.NumberOfDiners אורחים</span>
+                    <span><i class="bi bi-clock" aria-hidden="true"></i> @order.OrderDate.ToString("HH:mm")</span>
+                    @if (!order.IsCompleted)
+                    {
+                        <span class="time-remaining"><i class="bi bi-hourglass-split" aria-hidden="true"></i> עוד @minutesLeft דק׳</span>
+                    }
+                </div>
+
+                <div class="order-lines">
+                    @if (order.Lines.Count == 0)
+                    {
+                        <p class="order-lines-empty">לא נמצאו פריטים להזמנה זו.</p>
+                    }
+                    @foreach (var line in order.Lines)
+                    {
+                        <div class="order-line">
+                            <span><b>@line.Quantity.ToString("0.##")×</b> @line.ItemName</span>
+                            <strong>@line.Total.ToString("C0", culture)</strong>
+                        </div>
+                    }
+                </div>
+
+                <div class="order-ticket-total">
+                    <span>@order.ItemCount.ToString("0.##") פריטים</span>
+                    <strong>@order.Total.ToString("C0", culture)</strong>
+                </div>
+
+                <div class="order-ticket-actions">
+                    @if (order.StatusKey == "pending")
+                    {
+                        using (Html.BeginForm("Approve", "Orders", new { id = order.OrderId }, FormMethod.Post, new { @class = "order-action-form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button class="order-action order-action-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> אישור והתחלת טיפול</button>
+                        }
+                    }
+                    else if (order.StatusKey == "active")
+                    {
+                        using (Html.BeginForm("Complete", "Orders", new { id = order.OrderId }, FormMethod.Post, new { @class = "order-action-form", data_confirm = "לסיים את השירות ולשחרר את השולחן?" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button class="order-action order-action-complete" type="submit"><i class="bi bi-check2-circle" aria-hidden="true"></i> סיום ושחרור שולחן</button>
+                        }
+                    }
+                    else
+                    {
+                        <span class="order-completed-at"><i class="bi bi-check-all" aria-hidden="true"></i> הסתיימה ב־@order.TableSitTimeEnd.ToString("HH:mm")</span>
+                    }
+                    <small class="order-reference">#@order.OrderNumber</small>
+                </div>
+            </article>
+        }
+    </div>
+
+    <div id="ordersEmpty" class="orders-empty" hidden>
+        <span><i class="bi bi-inbox" aria-hidden="true"></i></span>
+        <h2>אין הזמנות בתצוגה הזו</h2>
+        <p>אפשר לבחור מסנן אחר או לנקות את החיפוש.</p>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        (function () {
+            var activeFilter = 'open';
+            var filters = document.querySelectorAll('.order-filter');
+            var tickets = document.querySelectorAll('.order-ticket');
+            var search = document.getElementById('orderSearch');
+            var empty = document.getElementById('ordersEmpty');
+
+            function refreshTickets() {
+                var query = (search.value || '').trim().toLowerCase();
+                var visible = 0;
+                tickets.forEach(function (ticket) {
+                    var status = ticket.getAttribute('data-status');
+                    var matchesFilter = activeFilter === 'all' || status === activeFilter || (activeFilter === 'open' && status !== 'completed');
+                    var matchesSearch = !query || (ticket.getAttribute('data-search') || '').toLowerCase().indexOf(query) !== -1;
+                    ticket.hidden = !(matchesFilter && matchesSearch);
+                    if (!ticket.hidden) visible++;
+                });
+                empty.hidden = visible !== 0;
+            }
+
+            filters.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    filters.forEach(function (candidate) { candidate.classList.remove('is-active'); });
+                    button.classList.add('is-active');
+                    activeFilter = button.getAttribute('data-filter');
+                    refreshTickets();
+                });
+            });
+            search.addEventListener('input', refreshTickets);
+            document.querySelectorAll('[data-confirm]').forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!window.confirm(form.getAttribute('data-confirm'))) event.preventDefault();
+                });
+            });
+            refreshTickets();
+        }());
+    </script>
 }
-
-</table>
