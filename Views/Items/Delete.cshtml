@@ -1,94 +1,27 @@
 ﻿@model CoffeeShopOnline.Models.Item
 
 @{
-    ViewBag.Title = "Delete";
+    ViewBag.Title = "הסרת " + Model.ItemName;
+    var imagePath = string.IsNullOrWhiteSpace(Model.ImagePath) ? "~/assets/Layout/img/coffeeF.jpg" : Model.ImagePath;
 }
 
-<h2>Delete</h2>
-
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>Item</h4>
-    <hr />
-    <dl class="dl-horizontal">
-        <dt>
-            @Html.DisplayNameFor(model => model.CatogoryId)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.CatogoryId)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.ItemCode)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.ItemCode)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.ItemName)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.ItemName)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.Decription)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.Decription)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.Quantity)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.Quantity)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.Promo)
-        </dt>
-
-        <dd>
-            @Html.CheckBoxFor(model => model.Promo)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.PromoPrice)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.PromoPrice)
-        </dd>
-
-
-        <dt>
-            @Html.DisplayNameFor(model => model.ImagePath)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.ImagePath)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.ItemPrice)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.ItemPrice)
-        </dd>
-
-    </dl>
-
-    @using (Html.BeginForm()) {
-        @Html.AntiForgeryToken()
-
-        <div class="form-actions no-color">
-            <input type="submit" value="Delete" class="btn btn-default" /> |
-            @Html.ActionLink("Back to List", "Index")
+<section class="delete-product-shell" aria-labelledby="delete-title">
+    <a class="delete-back" href="@Url.Action("Index")"><i class="bi bi-arrow-right" aria-hidden="true"></i> חזרה למלאי</a>
+    <div class="delete-product-card">
+        <span class="delete-warning-icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+        <span class="eyebrow">פעולה בלתי הפיכה</span>
+        <h1 id="delete-title">הסרת מוצר מהתפריט</h1>
+        <p>המוצר יוסר לצמיתות. אם הוא כבר מופיע בהיסטוריית הזמנות, המערכת תמנע את המחיקה כדי לשמור על נתונים תקינים.</p>
+        <div class="delete-product-preview">
+            <img src="@Url.Content(imagePath)" alt="@Model.ItemName" />
+            <div><small>המוצר שנבחר</small><strong>@Model.ItemName</strong><span>@Model.Quantity יחידות במלאי · @Model.ItemPrice.ToString("#,##0.00 ₪")</span></div>
         </div>
-    }
-</div>
+        <div class="delete-safe-option"><i class="bi bi-info-circle" aria-hidden="true"></i><span><strong>רוצים רק להסתיר זמנית?</strong> חזרו למסך המלאי ועדכנו את הכמות ל־0. כך היסטוריית המוצר תישמר.</span></div>
+        @using (Html.BeginForm("Delete", "Items", new { id = Model.ItemId }, FormMethod.Post, new { @class = "delete-product-actions" }))
+        {
+            @Html.AntiForgeryToken()
+            <a href="@Url.Action("Index")">ביטול וחזרה</a>
+            <button type="submit"><i class="bi bi-trash3" aria-hidden="true"></i> הסרת המוצר</button>
+        }
+    </div>
+</section>

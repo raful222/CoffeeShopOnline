@@ -1,89 +1,169 @@
-﻿@model IEnumerable<CoffeeShopOnline.Models.Item>
+﻿@model CoffeeShopOnline.Models.InventoryDashboardViewModel
+@using System.Globalization
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "ניהול מוצרים ומלאי";
+    var culture = CultureInfo.GetCultureInfo("he-IL");
+    var isAdmin = User.IsInRole("Admin");
 }
 
-<h2>Index</h2>
+<section class="inventory-workspace" aria-labelledby="inventory-title">
+    <header class="inventory-hero">
+        <div>
+            <span class="eyebrow">ניהול התפריט</span>
+            <h1 id="inventory-title">מוצרים ומלאי</h1>
+            <p>שליטה מהירה בזמינות, מחירים ומבצעים — כדי שכל מה שמופיע בתפריט באמת מוכן להזמנה.</p>
+        </div>
+        @if (isAdmin)
+        {
+            <a class="inventory-add" href="@Url.Action("Create", "Items")"><i class="bi bi-plus-lg" aria-hidden="true"></i> מוצר חדש</a>
+        }
+    </header>
 
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.CatogoryId)
-        </th>
+    @if (TempData["InventoryMessage"] != null)
+    {
+        <div class="inventory-notice notice-success" role="status"><i class="bi bi-check-circle" aria-hidden="true"></i> @TempData["InventoryMessage"]</div>
+    }
+    @if (TempData["InventoryWarning"] != null)
+    {
+        <div class="inventory-notice notice-warning" role="alert"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> @TempData["InventoryWarning"]</div>
+    }
 
-        <th>
-            @Html.DisplayNameFor(model => model.ItemName)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Decription)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Quantity)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Promo)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.PromoPrice)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.ImagePath)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.ItemPrice)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.PruductOfDay)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.popular)
-        </th>
-        <th></th>
-    </tr>
+    <div class="inventory-metrics" aria-label="סיכום מלאי">
+        <article><span class="inventory-metric-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span><div><small>יחידות במלאי</small><strong>@Model.TotalUnits</strong></div></article>
+        <article class="metric-attention"><span class="inventory-metric-icon"><i class="bi bi-exclamation-circle" aria-hidden="true"></i></span><div><small>מלאי נמוך</small><strong>@Model.LowStockCount</strong></div></article>
+        <article class="metric-danger"><span class="inventory-metric-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span><div><small>אזל מהמלאי</small><strong>@Model.OutOfStockCount</strong></div></article>
+        <article class="metric-promo"><span class="inventory-metric-icon"><i class="bi bi-tag" aria-hidden="true"></i></span><div><small>מבצעים פעילים</small><strong>@Model.PromotionCount</strong></div></article>
+    </div>
 
-@foreach (var item in Model) {
-<tr>
-    <td>
-        @Html.DisplayFor(modelItem => item.CatogoryId)
-    </td>
+    <div class="inventory-toolbar">
+        <label class="inventory-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <span class="visually-hidden">חיפוש מוצר</span>
+            <input id="inventorySearch" type="search" placeholder="חיפוש לפי שם או קוד מוצר" autocomplete="off" />
+        </label>
+        <label class="inventory-select">
+            <span>קטגוריה</span>
+            <select id="categoryFilter" aria-label="סינון לפי קטגוריה">
+                <option value="all">כל הקטגוריות</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.ToLowerInvariant()">@category</option>
+                }
+            </select>
+        </label>
+        <div class="inventory-view-filters" role="group" aria-label="סינון לפי מצב מלאי">
+            <button type="button" class="inventory-filter is-active" data-stock="all">הכול</button>
+            <button type="button" class="inventory-filter" data-stock="low">דורש טיפול</button>
+            <button type="button" class="inventory-filter" data-stock="promo">במבצע</button>
+        </div>
+    </div>
 
-    <td>
-        @Html.DisplayFor(modelItem => item.ItemName)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.Decription)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.Quantity)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.Promo)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.PromoPrice)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.ImagePath)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.ItemPrice)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.PruductOfDay)
-    </td>
-    <td>
-        @Html.DisplayFor(modelItem => item.popular)
-    </td>
-    <td>
-        @Html.ActionLink("Edit", "Edit", new { id = item.ItemId }) |
-        @Html.ActionLink("Details", "Details", new { id = item.ItemId }) |
-        @Html.ActionLink("Delete", "Delete", new { id = item.ItemId })
-    </td>
-</tr>
+    <div id="inventoryGrid" class="inventory-grid">
+        @foreach (var item in Model.Items)
+        {
+            var stockKey = item.Quantity == 0 ? "out" : item.Quantity <= 5 ? "low" : "available";
+            var stockLabel = item.Quantity == 0 ? "אזל מהמלאי" : item.Quantity <= 5 ? "מלאי נמוך" : "במלאי";
+            var promoActive = item.Promo && item.PromoPrice > 0 && item.PromoPrice < item.ItemPrice;
+            var imagePath = string.IsNullOrWhiteSpace(item.ImagePath) ? "~/assets/Layout/img/coffeeF.jpg" : item.ImagePath;
+            <article class="inventory-card stock-@stockKey" data-stock="@stockKey" data-promo="@promoActive.ToString().ToLowerInvariant()" data-category="@item.CategoryName.ToLowerInvariant()" data-search="@item.ItemName @item.ItemCode">
+                <div class="inventory-image-wrap">
+                    <img src="@Url.Content(imagePath)" alt="@item.ItemName" loading="lazy" />
+                    <span class="inventory-stock-badge"><i class="bi bi-circle-fill" aria-hidden="true"></i> @stockLabel</span>
+                    @if (item.ProductOfDay)
+                    {
+                        <span class="inventory-daily"><i class="bi bi-star-fill" aria-hidden="true"></i> מנת היום</span>
+                    }
+                </div>
+                <div class="inventory-card-body">
+                    <div class="inventory-card-heading">
+                        <div><small>@item.CategoryName</small><h2>@item.ItemName</h2></div>
+                        @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                        {
+                            <span class="inventory-code">@item.ItemCode</span>
+                        }
+                    </div>
+                    <p>@(string.IsNullOrWhiteSpace(item.Description) ? "ללא תיאור מוצר" : item.Description)</p>
+                    <div class="inventory-price-row">
+                        @if (promoActive)
+                        {
+                            <strong>@item.PromoPrice.ToString("C2", culture)</strong><del>@item.ItemPrice.ToString("C2", culture)</del><span>מבצע</span>
+                        }
+                        else
+                        {
+                            <strong>@item.ItemPrice.ToString("C2", culture)</strong>
+                        }
+                    </div>
+
+                    <div class="inventory-stock-control">
+                        <div><span>מלאי נוכחי</span><strong>@item.Quantity</strong></div>
+                        @if (isAdmin)
+                        {
+                            using (Html.BeginForm("UpdateStock", "Items", new { id = item.ItemId }, FormMethod.Post, new { @class = "quick-stock-form" }))
+                            {
+                                @Html.AntiForgeryToken()
+                                <label><span class="visually-hidden">כמות חדשה עבור @item.ItemName</span><input type="number" name="quantity" value="@item.Quantity" min="0" max="100000" required /></label>
+                                <button type="submit" aria-label="עדכון מלאי עבור @item.ItemName"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></button>
+                            }
+                        }
+                    </div>
+                </div>
+                <footer class="inventory-card-actions">
+                    <span><i class="bi bi-graph-up" aria-hidden="true"></i> @item.Popularity הזמנות</span>
+                    @if (isAdmin)
+                    {
+                        <div>
+                            <a href="@Url.Action("Edit", new { id = item.ItemId })"><i class="bi bi-pencil" aria-hidden="true"></i> עריכה</a>
+                            <a class="inventory-delete-link" href="@Url.Action("Delete", new { id = item.ItemId })"><i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">מחיקת @item.ItemName</span></a>
+                        </div>
+                    }
+                </footer>
+            </article>
+        }
+    </div>
+
+    <div id="inventoryEmpty" class="inventory-empty" hidden>
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <h2>לא נמצאו מוצרים</h2>
+        <p>נסו לשנות את החיפוש או את אפשרויות הסינון.</p>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        (function () {
+            var search = document.getElementById('inventorySearch');
+            var category = document.getElementById('categoryFilter');
+            var filters = document.querySelectorAll('.inventory-filter');
+            var cards = document.querySelectorAll('.inventory-card');
+            var empty = document.getElementById('inventoryEmpty');
+            var stockFilter = 'all';
+
+            function refreshInventory() {
+                var query = (search.value || '').trim().toLowerCase();
+                var categoryValue = category.value;
+                var visible = 0;
+                cards.forEach(function (card) {
+                    var stock = card.getAttribute('data-stock');
+                    var matchesStock = stockFilter === 'all' || (stockFilter === 'low' && (stock === 'low' || stock === 'out')) || (stockFilter === 'promo' && card.getAttribute('data-promo') === 'true');
+                    var matchesCategory = categoryValue === 'all' || card.getAttribute('data-category') === categoryValue;
+                    var matchesSearch = !query || (card.getAttribute('data-search') || '').toLowerCase().indexOf(query) !== -1;
+                    card.hidden = !(matchesStock && matchesCategory && matchesSearch);
+                    if (!card.hidden) visible++;
+                });
+                empty.hidden = visible !== 0;
+            }
+
+            filters.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    filters.forEach(function (candidate) { candidate.classList.remove('is-active'); });
+                    button.classList.add('is-active');
+                    stockFilter = button.getAttribute('data-stock');
+                    refreshInventory();
+                });
+            });
+            search.addEventListener('input', refreshInventory);
+            category.addEventListener('change', refreshInventory);
+        }());
+    </script>
 }
-
-</table>

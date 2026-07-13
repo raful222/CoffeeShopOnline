@@ -14,6 +14,12 @@ namespace CoffeeShopOnline
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
             routes.MapRoute(
+                name: "InventoryDashboard",
+                url: "Items",
+                defaults: new { controller = "Items", action = "Index" }
+            );
+
+            routes.MapRoute(
                 name: "OrdersDashboard",
                 url: "Orders",
                 defaults: new { controller = "Orders", action = "Index" }

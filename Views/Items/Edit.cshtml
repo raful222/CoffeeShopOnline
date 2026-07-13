@@ -1,113 +1,80 @@
-﻿@model CoffeeShopOnline.Models.Item
+﻿@model CoffeeShopOnline.Models.ItemViewModel
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "עריכת " + Model.ItemName;
+    var existingImage = string.IsNullOrWhiteSpace(Model.ExistingImagePath) ? "~/assets/Layout/img/coffeeF.jpg" : Model.ExistingImagePath;
 }
 
-<h2>Edit</h2>
+<section class="product-editor" aria-labelledby="editor-title">
+    <header class="product-editor-head">
+        <a href="@Url.Action("Index")"><i class="bi bi-arrow-right" aria-hidden="true"></i> חזרה למלאי</a>
+        <span class="eyebrow">עדכון מוצר</span>
+        <h1 id="editor-title">עריכת @Model.ItemName</h1>
+        <p>עדכנו מחיר, מלאי ופרטי תצוגה. נתוני הפופולריות והיסטוריית ההזמנות נשמרים ללא שינוי.</p>
+    </header>
 
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
-    
-<div class="form-horizontal">
-    <h4>Item</h4>
-    <hr />
-    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-    @Html.HiddenFor(model => model.ItemId)
+    @using (Html.BeginForm("Edit", "Items", FormMethod.Post, new { enctype = "multipart/form-data", @class = "product-editor-form" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(model => model.ItemId)
+        @Html.ValidationSummary(true, "לא הצלחנו לשמור את המוצר. בדקו את הפרטים המסומנים.", new { @class = "editor-validation", role = "alert" })
 
-    <div class="form-group">
-        @Html.LabelFor(model => model.CatogoryId, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.CatogoryId, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.CatogoryId, "", new { @class = "text-danger" })
-        </div>
-    </div>
+        <div class="product-editor-layout">
+            <div class="editor-fields">
+                <section class="editor-panel">
+                    <div class="editor-panel-title"><span>1</span><div><h2>פרטי המוצר</h2><p>המידע שמופיע ללקוחות בתפריט.</p></div></div>
+                    <div class="editor-grid">
+                        <div class="editor-field editor-field-wide">@Html.LabelFor(model => model.ItemName)@Html.TextBoxFor(model => model.ItemName, new { autocomplete = "off" })@Html.ValidationMessageFor(model => model.ItemName, "", new { @class = "field-error" })</div>
+                        <div class="editor-field">@Html.LabelFor(model => model.CategoryId)@Html.DropDownListFor(model => model.CategoryId, Model.CategorySelectListItems, "בחרו קטגוריה")@Html.ValidationMessageFor(model => model.CategoryId, "", new { @class = "field-error" })</div>
+                        <div class="editor-field">@Html.LabelFor(model => model.ItemCode)@Html.TextBoxFor(model => model.ItemCode, new { autocomplete = "off", placeholder = "אופציונלי" })@Html.ValidationMessageFor(model => model.ItemCode, "", new { @class = "field-error" })</div>
+                        <div class="editor-field editor-field-wide">@Html.LabelFor(model => model.Description)@Html.TextAreaFor(model => model.Description, 4, 1, null)@Html.ValidationMessageFor(model => model.Description, "", new { @class = "field-error" })</div>
+                    </div>
+                </section>
 
-    <div class="form-group">
-        @Html.LabelFor(model => model.ItemCode, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.ItemCode, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.ItemCode, "", new { @class = "text-danger" })
-        </div>
-    </div>
+                <section class="editor-panel">
+                    <div class="editor-panel-title"><span>2</span><div><h2>מחיר ומלאי</h2><p>השינויים נכנסים לתוקף מיד לאחר השמירה.</p></div></div>
+                    <div class="editor-grid">
+                        <div class="editor-field">@Html.LabelFor(model => model.ItemPrice)<div class="input-with-symbol">@Html.TextBoxFor(model => model.ItemPrice, new { type = "number", min = "0.01", max = "10000", step = "0.01" })<span>₪</span></div>@Html.ValidationMessageFor(model => model.ItemPrice, "", new { @class = "field-error" })</div>
+                        <div class="editor-field">@Html.LabelFor(model => model.Quantity)@Html.TextBoxFor(model => model.Quantity, new { type = "number", min = "0", max = "100000", step = "1" })@Html.ValidationMessageFor(model => model.Quantity, "", new { @class = "field-error" })</div>
+                        <div class="editor-toggle editor-field-wide">@Html.CheckBoxFor(model => model.Promo)<label for="Promo"><span><i class="bi bi-tag" aria-hidden="true"></i></span><b>הפעלת מחיר מבצע</b><small>המחיר המוזל יוצג לצד המחיר הרגיל.</small></label></div>
+                        <div id="promoPriceField" class="editor-field editor-field-wide promo-price-field">@Html.LabelFor(model => model.PromoPrice)<div class="input-with-symbol">@Html.TextBoxFor(model => model.PromoPrice, new { type = "number", min = "0", max = "10000", step = "0.01" })<span>₪</span></div>@Html.ValidationMessageFor(model => model.PromoPrice, "", new { @class = "field-error" })</div>
+                        <div class="editor-toggle editor-field-wide">@Html.CheckBoxFor(model => model.ProductOfDay)<label for="ProductOfDay"><span><i class="bi bi-star" aria-hidden="true"></i></span><b>סימון כמנת היום</b><small>המוצר יקבל הדגשה מיוחדת בתפריט.</small></label></div>
+                    </div>
+                </section>
+            </div>
 
-    <div class="form-group">
-        @Html.LabelFor(model => model.ItemName, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.ItemName, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.ItemName, "", new { @class = "text-danger" })
+            <aside class="editor-media-panel">
+                <div class="editor-panel-title"><span>3</span><div><h2>תמונת מוצר</h2><p>השאירו ללא שינוי כדי לשמור את התמונה הקיימת.</p></div></div>
+                <label class="image-upload has-image" for="ImagePath">
+                    <img id="imagePreview" src="@Url.Content(existingImage)" alt="התמונה הנוכחית של @Model.ItemName" />
+                    <span id="imagePlaceholder" hidden><i class="bi bi-image" aria-hidden="true"></i><b>בחירת תמונה</b></span>
+                    <span class="image-change-label"><i class="bi bi-camera" aria-hidden="true"></i> החלפת תמונה</span>
+                </label>
+                @Html.TextBoxFor(model => model.ImagePath, new { type = "file", accept = "image/jpeg,image/png,image/webp", @class = "visually-hidden" })
+                @Html.ValidationMessageFor(model => model.ImagePath, "", new { @class = "field-error image-error" })
+                <div class="editor-tip"><i class="bi bi-shield-check" aria-hidden="true"></i><span><strong>היסטוריה נשמרת</strong> שינוי מוצר אינו משנה פריטים או מחירים בהזמנות קודמות.</span></div>
+            </aside>
         </div>
-    </div>
 
-    <div class="form-group">
-        @Html.LabelFor(model => model.Decription, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.Decription, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.Decription, "", new { @class = "text-danger" })
-        </div>
-    </div>
-    <div class="form-group">
-        @Html.LabelFor(model => model.Quantity, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.Quantity, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.Quantity, "", new { @class = "text-danger" })
-        </div>
-    </div>
+        <footer class="editor-actions"><a href="@Url.Action("Index")">ביטול</a><button type="submit"><i class="bi bi-check2" aria-hidden="true"></i> שמירת שינויים</button></footer>
+    }
+</section>
 
-    <div class="form-group">
-        @Html.LabelFor(model => model.Promo, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.CheckBoxFor(model => model.Promo, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.Promo, "", new { @class = "text-danger" })
-        </div>
-    </div>
-    <div class="form-group">
-        @Html.LabelFor(model => model.PromoPrice, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.PromoPrice, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.PromoPrice, "", new { @class = "text-danger" })
-        </div>
-    </div>
-
-    <div class="form-group">
-        @Html.LabelFor(model => model.ImagePath, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.ImagePath, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.ImagePath, "", new { @class = "text-danger" })
-        </div>
-    </div>
-
-    <div class="form-group">
-        @Html.LabelFor(model => model.ItemPrice, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.ItemPrice, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.ItemPrice, "", new { @class = "text-danger" })
-        </div>
-    </div>
-    <div class="form-group">
-        @Html.LabelFor(model => model.PruductOfDay, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.PruductOfDay, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.PruductOfDay, "", new { @class = "text-danger" })
-        </div>
-    </div>
-    <div class="form-group">
-        @Html.LabelFor(model => model.popular, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.popular, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.popular, "", new { @class = "text-danger" })
-        </div>
-    </div>
-
-    <div class="form-group">
-        <div class="col-md-offset-2 col-md-10">
-            <input type="submit" value="Save" class="btn btn-default" />
-        </div>
-    </div>
-</div>
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        (function () {
+            var promo = document.getElementById('Promo');
+            var promoField = document.getElementById('promoPriceField');
+            var imageInput = document.getElementById('ImagePath');
+            var preview = document.getElementById('imagePreview');
+            function updatePromo() { promoField.hidden = !promo.checked; }
+            promo.addEventListener('change', updatePromo);
+            updatePromo();
+            imageInput.addEventListener('change', function () {
+                if (!imageInput.files || !imageInput.files[0]) return;
+                preview.src = URL.createObjectURL(imageInput.files[0]);
+            });
+        }());
+    </script>
 }
-
-<div>
-    @Html.ActionLink("Back to List", "Index")
-</div>

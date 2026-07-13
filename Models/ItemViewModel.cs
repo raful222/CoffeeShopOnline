@@ -31,20 +31,92 @@ namespace CoffeeShopOnline.Models
         
     }
 
-    public class ItemViewModel
+    public class ItemViewModel : IValidatableObject
     {
-        public Guid Itemid { get; set; }
+        public Guid ItemId { get; set; }
+
+        [Display(Name = "קטגוריה")]
+        [Range(1, int.MaxValue, ErrorMessage = "יש לבחור קטגוריה.")]
         public int CategoryId { get; set; }
+
+        [Display(Name = "קוד מוצר")]
+        [StringLength(30, ErrorMessage = "קוד המוצר יכול להכיל עד 30 תווים.")]
+        public string ItemCode { get; set; }
+
+        [Required(ErrorMessage = "יש להזין שם מוצר.")]
+        [StringLength(100, ErrorMessage = "שם המוצר יכול להכיל עד 100 תווים.")]
+        [Display(Name = "שם המוצר")]
+        public string ItemName { get; set; }
+
+        [StringLength(500, ErrorMessage = "התיאור יכול להכיל עד 500 תווים.")]
+        [Display(Name = "תיאור")]
+        public string Description { get; set; }
+
+        [Range(typeof(decimal), "0.01", "10000", ErrorMessage = "יש להזין מחיר בין 0.01 ל־10,000.")]
+        [Display(Name = "מחיר רגיל")]
+        public decimal ItemPrice { get; set; }
+
+        [Display(Name = "תמונת מוצר")]
+        public HttpPostedFileBase ImagePath { get; set; }
+
+        [Range(0, 100000, ErrorMessage = "כמות המלאי חייבת להיות בין 0 ל־100,000.")]
+        [Display(Name = "כמות במלאי")]
+        public int Quantity { get; set; }
+
+        [Display(Name = "מבצע פעיל")]
+        public bool Promo { get; set; }
+
+        [Range(typeof(decimal), "0", "10000", ErrorMessage = "מחיר המבצע אינו תקין.")]
+        [Display(Name = "מחיר מבצע")]
+        public decimal PromoPrice { get; set; }
+
+        [Display(Name = "מנת היום")]
+        public bool ProductOfDay { get; set; }
+
+        public string ExistingImagePath { get; set; }
+
+        public IEnumerable<SelectListItem> CategorySelectListItems { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Promo && PromoPrice <= 0)
+                yield return new ValidationResult("יש להזין מחיר מבצע גדול מאפס.", new[] { "PromoPrice" });
+
+            if (Promo && PromoPrice >= ItemPrice)
+                yield return new ValidationResult("מחיר המבצע חייב להיות נמוך מהמחיר הרגיל.", new[] { "PromoPrice" });
+        }
+    }
+
+    public sealed class InventoryDashboardViewModel
+    {
+        public InventoryDashboardViewModel()
+        {
+            Items = new List<InventoryItemViewModel>();
+            Categories = new List<string>();
+        }
+
+        public IList<InventoryItemViewModel> Items { get; set; }
+        public IList<string> Categories { get; set; }
+        public int LowStockCount { get; set; }
+        public int OutOfStockCount { get; set; }
+        public int PromotionCount { get; set; }
+        public int TotalUnits { get; set; }
+    }
+
+    public sealed class InventoryItemViewModel
+    {
+        public Guid ItemId { get; set; }
         public string ItemCode { get; set; }
         public string ItemName { get; set; }
         public string Description { get; set; }
+        public string ImagePath { get; set; }
+        public string CategoryName { get; set; }
         public decimal ItemPrice { get; set; }
-        public HttpPostedFileBase ImagePath { get; set; }
-        public int Quantity { get; set; }
-        public bool Promo { get; set; }
         public decimal PromoPrice { get; set; }
-
-        public IEnumerable<SelectListItem> CategorySelectListItems { get; set; }
+        public int Quantity { get; set; }
+        public int Popularity { get; set; }
+        public bool Promo { get; set; }
+        public bool ProductOfDay { get; set; }
     }
 
 
