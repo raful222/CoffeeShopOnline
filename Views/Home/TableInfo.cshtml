@@ -131,7 +131,10 @@
     if (recommended) { <span class="recommended-badge"><i class="bi bi-stars"></i> הבחירה המומלצת</span> }
     <span class="table-visual table-size-@(table.TableSits > 6 ? "large" : table.TableSits > 3 ? "medium" : "small")">
         <span class="table-surface"><i class="bi bi-cup-hot-fill"></i></span>
-        <span class="chair chair-top"></span><span class="chair chair-right"></span><span class="chair chair-bottom"></span><span class="chair chair-left"></span>
+        @for (var chairIndex = 0; chairIndex < Math.Min(table.TableSits, 12); chairIndex++)
+        {
+            <span class="chair-slot" style="--chair-index: @chairIndex; --chair-count: @Math.Min(table.TableSits, 12);"><span class="chair-seat"></span></span>
+        }
     </span>
     <span class="table-card-bottom">
         <span class="seat-count"><i class="bi bi-people"></i><strong>עד @table.TableSits</strong> אורחים</span>

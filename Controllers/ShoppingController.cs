@@ -17,7 +17,7 @@ namespace CoffeeShopOnline.Controllers
             int tableId;
             if (Session["table"] == null || !int.TryParse(Session["table"].ToString(), out tableId))
             {
-                TempData["Message"] = "Choose a table before browsing the menu.";
+                TempData["Message"] = "בחרו שולחן לפני המעבר לתפריט.";
                 return RedirectToAction("OnlineOrder", "Home");
             }
 
