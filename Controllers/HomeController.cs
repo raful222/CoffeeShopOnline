@@ -84,6 +84,8 @@ namespace CoffeeShopOnline.Controllers
 
             return View(tables);
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult CheckTable(string mine)
         {
             int tableId;

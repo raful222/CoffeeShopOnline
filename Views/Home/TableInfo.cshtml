@@ -1,143 +1,116 @@
 ﻿@model IEnumerable<CoffeeShopOnline.Models.RoomTable>
-
+@using System.Linq
+@using System.Collections.Generic
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
-
-    ViewBag.Title = "TableInfo";
-    var message = TempData["Message"] ?? string.Empty;
-    <link href="~/assets/Layout/css/style.css" rel="stylesheet" />
+    ViewBag.Title = "בחירת שולחן";
+    var indoorTables = Model.Where(table => table.RoomType == "InSide").OrderBy(table => table.TableNumber).ToList();
+    var outdoorTables = Model.Where(table => table.RoomType == "OutSide").OrderBy(table => table.TableNumber).ToList();
+    var availableCount = Model.Count(table => !table.Available);
+    var guestCount = Session["count"] == null ? 0 : Convert.ToInt32(Session["count"]);
+    var message = TempData["Message"] as string;
+    var outsideIsOpen = DateTime.Now.DayOfWeek != DayOfWeek.Friday && DateTime.Now.DayOfWeek != DayOfWeek.Saturday;
 }
-<script type="text/javascript">
-var message = '@message';
-if(message)
-    alert(message);
-</script>
 
-@*<h3><strong>@TempData["Message"]</strong></h3>
-*@
-<script src="~/Scripts/jquery-3.6.0.min.js"></script>
+<div class="table-picker">
+    <section class="table-picker-hero">
+        <div class="table-picker-hero-copy">
+            <a class="step-back" href="@Url.Action("OnlineOrder", "Home")"><i class="bi bi-arrow-right"></i> שינוי מספר האורחים</a>
+            <span class="eyebrow">שלב 2 מתוך 3</span>
+            <h1>איפה תרצו לשבת?</h1>
+            <p>בחרו את השולחן שמתאים לכם. מיד אחר כך תעברו לתפריט ותוכלו להתחיל להזמין.</p>
+            <div class="reservation-meta">
+                <span><i class="bi bi-people-fill"></i> @guestCount אורחים</span>
+                <span><i class="bi bi-lightning-charge-fill"></i> אישור מיידי</span>
+                <span><i class="bi bi-clock-fill"></i> השולחן נשמר לשעתיים</span>
+            </div>
+        </div>
+        <div class="availability-orb" aria-label="@availableCount שולחנות זמינים">
+            <div class="availability-orb-ring">
+                <strong>@availableCount</strong>
+                <span>שולחנות<br />זמינים עכשיו</span>
+            </div>
+        </div>
+    </section>
 
-<h3 style="text-align:center"> אנא בחר שולחן </h3>
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="picker-alert" role="alert"><i class="bi bi-info-circle-fill"></i><span>@message</span></div>
+    }
 
+    <div class="picker-legend" aria-label="מקרא זמינות">
+        <span><i class="legend-dot available"></i> זמין לבחירה</span>
+        <span><i class="legend-dot occupied"></i> תפוס כרגע</span>
+        <span class="picker-hint"><i class="bi bi-cursor-fill"></i> לחצו על שולחן זמין כדי להמשיך</span>
+    </div>
 
-@using (Html.BeginForm("CheckTable", "Home"))
+    @using (Html.BeginForm("CheckTable", "Home", FormMethod.Post, new { @class = "table-selection-form" }))
+    {
+        @Html.AntiForgeryToken()
+
+        @RenderTableSection("בפנים", "חלל ממוזג, אווירה שקטה וקרוב לבריסטה", "bi-house-heart-fill", indoorTables)
+
+        if (outsideIsOpen)
+        {
+            @RenderTableSection("בחוץ", "אוויר פתוח, אור טבעי והאווירה של הרחוב", "bi-brightness-high-fill", outdoorTables)
+        }
+        else
+        {
+            <section class="seating-section seating-closed">
+                <div class="closed-icon"><i class="bi bi-moon-stars-fill"></i></div>
+                <div><span class="eyebrow">האזור החיצוני סגור היום</span><h2>נשמח לארח אתכם בפנים</h2><p>בימי שישי ושבת הישיבה בחוץ אינה זמינה. כל השולחנות הפנימיים מופיעים למעלה.</p></div>
+            </section>
+        }
+    }
+
+    <div class="picker-confidence">
+        <div><i class="bi bi-shield-check"></i><span><strong>בחירה בטוחה</strong><small>הזמינות נבדקת שוב לפני אישור ההזמנה</small></span></div>
+        <div><i class="bi bi-arrow-repeat"></i><span><strong>אפשר לשנות</strong><small>תמיד ניתן לחזור ולבחור שולחן אחר</small></span></div>
+        <div><i class="bi bi-cup-hot"></i><span><strong>מיד לתפריט</strong><small>לאחר הבחירה תעברו ישר להזמנה</small></span></div>
+    </div>
+</div>
+
+@helper RenderTableSection(string title, string description, string icon, IList<CoffeeShopOnline.Models.RoomTable> tables)
 {
-    @Html.AntiForgeryToken()
+    <section class="seating-section">
+        <header class="seating-section-header">
+            <div class="section-icon"><i class="bi @icon"></i></div>
+            <div><span class="eyebrow">אזור ישיבה</span><h2>@title</h2><p>@description</p></div>
+            <span class="section-availability">@tables.Count(table => !table.Available) זמינים</span>
+        </header>
 
-    <div class="container">
-        <h3>InSide Tables </h3>
-        <div class="row">
-            @foreach (var item in Model)
+        <div class="table-card-grid">
+            @foreach (var table in tables)
             {
-                if (item.RoomType == "InSide")
+                if (!table.Available)
                 {
-
-                    <div class="col-12 col-md-3 col-lg-3 col-xl-3 ">
-
-                        <br />
-
-                        <div id="tablename" style="border-block:ridge">
-                            Table Number is  @item.TableNumber
-
-                            Good For
-                            <div id="person">
-                                @for (int i = 0; i < item.TableSits; i++)
-                                {
-                                    <i class="bi bi-person-fill"></i>
-                                }
-                            </div>
-                        </div>
-
-                        <br />
-                        @if (!item.Available)
-                        {
-                            <button type="submit" name="mine" value=@item.Id id="table">
-
-                                <img src="~/Images/ריבוע ירוק.png" />
-                            </button>
-
-                        }
-                        else
-                        {
-                            <img src="~/Images/ריבוע אפור.jpg" />
-                            <h6>This Table is occupied </h6>
-
-                        }
-
-
-
-
+                    <button type="submit" name="mine" value="@table.Id" class="table-card is-available" aria-label="בחירת שולחן @table.TableNumber, עד @table.TableSits אורחים">
+                        @TableCardContents(table, true)
+                    </button>
+                }
+                else
+                {
+                    <div class="table-card is-occupied" aria-label="שולחן @table.TableNumber תפוס">
+                        @TableCardContents(table, false)
                     </div>
-
                 }
             }
         </div>
-    </div>
-
-    <br />
-    <br />
-    if (DateTime.Now.DayOfWeek != DayOfWeek.Friday && DateTime.Now.DayOfWeek != DayOfWeek.Saturday)
-    {
-
-
-        <div class="container">
-            <h3>OutSide Tables </h3>
-
-            <div class="row">
-                @foreach (var item in Model)
-                {
-                    if (item.RoomType == "OutSide")
-                    {
-
-                        <div class="col-12 col-md-3 col-lg-3 col-xl-3 ">
-
-                            <br />
-
-                            <div id="tablename" style="border-block:ridge">
-                                Table Number is  @item.TableNumber
-
-                                Good For
-                                <div id="person">
-                                    @for (int i = 0; i < item.TableSits; i++)
-                                    {
-                                        <i class="bi bi-person-fill"></i>
-                                    }
-                                </div>
-                            </div>
-
-                            <br />
-                            @if (!item.Available)
-                            {
-                                <button type="submit" name="mine" value=@item.Id id="table">
-                                    <img src="~/Images/ריבוע ירוק.png" />
-
-                                </button>
-
-                            }
-                            else
-                            {
-                                <img src="~/Images/ריבוע אפור.jpg" />
-                                <h6>This Table is occupied </h6>
-
-                            }
-
-                        </div>
-
-                    }
-                }
-            </div>
-        </div>
-    }
-    else
-    {
-        <h3>We Are Sorry in Friday and Saturday we dont have Siiting table OutSide </h3>
-    }
+    </section>
 }
-<style>
-    img {
-        border: 2px solid red;
-        border-radius: 8px;
-        width: 100px;
-        align-content: center
-    }
-</style>
+
+@helper TableCardContents(CoffeeShopOnline.Models.RoomTable table, bool available)
+{
+    <span class="table-card-topline">
+        <span class="table-number"><small>שולחן</small>@table.TableNumber</span>
+        <span class="table-status"><i class="status-pulse"></i>@(available ? "זמין" : "תפוס")</span>
+    </span>
+    <span class="table-visual table-size-@(table.TableSits > 6 ? "large" : table.TableSits > 3 ? "medium" : "small")">
+        <span class="table-surface"><i class="bi bi-cup-hot-fill"></i></span>
+        <span class="chair chair-top"></span><span class="chair chair-right"></span><span class="chair chair-bottom"></span><span class="chair chair-left"></span>
+    </span>
+    <span class="table-card-bottom">
+        <span class="seat-count"><i class="bi bi-people"></i><strong>עד @table.TableSits</strong> אורחים</span>
+        @if (available) { <span class="choose-arrow"><i class="bi bi-arrow-left"></i></span> }
+        else { <span class="occupied-label">לא זמין</span> }
+    </span>
+}
