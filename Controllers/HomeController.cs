@@ -1,72 +1,49 @@
-﻿using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Services;
+using Microsoft.AspNet.Identity;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
+
 namespace CoffeeShopOnline.Controllers
-{ 
+{
     public class HomeController : Controller
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
+        private readonly ApplicationDbContext db = new ApplicationDbContext();
 
-
-        public ActionResult Index()
-        {
-            return View();
-
-        }
-        [HttpGet]
-        public ActionResult OnlineOrder()
-        {
-            return View();
-
-        }
-       
+        public ActionResult Index() { return View(); }
+        [HttpGet] public ActionResult OnlineOrder() { return View(); }
 
         public ActionResult About()
         {
             ViewBag.Message = "Your application description page.";
-
             return View();
         }
 
         public ActionResult Contact()
         {
             ViewBag.Message = "Your contact page.";
-
             return View();
         }
 
-
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult TableInfo(People p)
+        [HttpPost, ValidateAntiForgeryToken]
+        public ActionResult TableInfo(People people)
         {
-            if (!ModelState.IsValid)
-            {
-                return View("OnlineOrder", p);
-            }
-
-            Session["count"] = p.NumberOfClient;
-            Session["Party"] = p.ClosedParty;
+            if (!ModelState.IsValid) return View("OnlineOrder", people);
+            CartService().SetReservation(people.NumberOfClient, people.ClosedParty);
             return RedirectToAction("TableInfo");
         }
 
         [HttpGet]
         public ActionResult TableInfo()
         {
-            if (Session["count"] == null)
-            {
-                return RedirectToAction("OnlineOrder");
-            }
+            var reservation = CartService().GetReservation();
+            if (!reservation.DinerCount.HasValue) return RedirectToAction("OnlineOrder");
+            ViewBag.GuestCount = reservation.DinerCount.Value;
 
             var tables = db.RoomTables.ToList();
-            var latestOrders = db.Orders
-                .GroupBy(order => order.TableNumber)
-                .Select(group => new { TableNumber = group.Key, EndTime = group.Max(order => order.TableSitTimeEnd) })
-                .ToList();
+            var latestOrders = db.Orders.GroupBy(order => order.TableNumber)
+                .Select(group => new { TableNumber = group.Key, EndTime = group.Max(order => order.TableSitTimeEnd) }).ToList();
             var availabilityChanged = false;
             foreach (var table in tables.Where(table => table.Available))
             {
@@ -77,48 +54,43 @@ namespace CoffeeShopOnline.Controllers
                     availabilityChanged = true;
                 }
             }
-            if (availabilityChanged)
-            {
-                db.SaveChanges();
-            }
-
+            if (availabilityChanged) db.SaveChanges();
             return View(tables);
         }
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+
+        [HttpPost, ValidateAntiForgeryToken]
         public ActionResult CheckTable(string mine)
         {
             int tableId;
-            if (!int.TryParse(mine, out tableId) || Session["count"] == null)
-            {
+            var cartService = CartService();
+            var reservation = cartService.GetReservation();
+            if (!int.TryParse(mine, out tableId) || !reservation.DinerCount.HasValue)
                 return RedirectToAction("OnlineOrder");
-            }
 
-            RoomTable objItem = db.RoomTables.SingleOrDefault(model => model.Id == tableId);
-            if (objItem == null || objItem.Available)
+            var roomTable = db.RoomTables.SingleOrDefault(model => model.Id == tableId);
+            if (roomTable == null || roomTable.Available)
             {
                 TempData["Message"] = "השולחן שבחרתם כבר אינו זמין. בחרו שולחן אחר ונמשיך מיד.";
                 return RedirectToAction("TableInfo");
             }
-
-            int number = (int)Session["count"];
-            if (number <= objItem.TableSits)
+            if (reservation.DinerCount.Value <= roomTable.TableSits)
             {
-                Session["table"] = mine;
+                cartService.SelectTable(tableId);
                 return RedirectToAction("Index", "Shopping");
             }
+
             TempData["Message"] = "השולחן שבחרתם קטן מדי למספר האורחים. סימנו עבורכם את השולחנות המתאימים.";
-
             return RedirectToAction("TableInfo");
+        }
 
+        private PersistentCartService CartService()
+        {
+            return new PersistentCartService(db, HttpContext, User.Identity.GetUserId());
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                db.Dispose();
-            }
+            if (disposing) db.Dispose();
             base.Dispose(disposing);
         }
     }

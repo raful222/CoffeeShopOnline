@@ -105,7 +105,11 @@
             }).then(function (response) { return response.json(); }).then(function (result) {
                 if (!result.Success) throw new Error(result.Message || 'לא ניתן להוסיף את הפריט.');
                 var cart = document.getElementById('cartItem');
-                if (cart) cart.textContent = 'סל (' + result.Counter + ')';
+                if (cart) {
+                    cart.setAttribute('aria-label', 'סל קניות, ' + result.Counter + ' פריטים');
+                    cart.innerHTML = '<i class="bi bi-bag" aria-hidden="true"></i><span>סל</span>' +
+                        (result.Counter > 0 ? '<span>(' + result.Counter + ')</span>' : '');
+                }
                 button.innerHTML = '<i class="bi bi-check-lg"></i> נוסף';
                 window.setTimeout(function () { button.innerHTML = '<i class="bi bi-plus-lg"></i> הוספה לסל'; }, 1200);
             }).catch(function (error) {

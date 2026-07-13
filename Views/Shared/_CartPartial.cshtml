@@ -1,11 +1,9 @@
-﻿@{
-    var count = Session["CartCounter"] == null ? 0 : Convert.ToInt32(Session["CartCounter"]);
-}
-<a href="@Url.Action("ShoppingCart", "Shopping")" id="cartItem" class="header-action" aria-label="סל קניות, @count פריטים">
+@model int
+<a href="@Url.Action("ShoppingCart", "Shopping")" id="cartItem" class="header-action" aria-label="&#1505;&#1500; &#1511;&#1504;&#1497;&#1493;&#1514;, @Model &#1508;&#1512;&#1497;&#1496;&#1497;&#1501;">
     <i class="bi bi-bag" aria-hidden="true"></i>
-    <span>סל</span>
-    @if (count > 0)
+    <span>&#1505;&#1500;</span>
+    @if (Model > 0)
     {
-        <span>(@count)</span>
+        <span>(@Model)</span>
     }
 </a>

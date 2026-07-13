@@ -1,4 +1,6 @@
 ﻿using CoffeeShopOnline.Models;
+using CoffeeShopOnline.Services;
+using Microsoft.AspNet.Identity;
 using PayPal.Api;
 using System;
 using System.Collections.Generic;
@@ -11,6 +13,7 @@ namespace CoffeeShopOnline.Controllers
 {
     public class PaymentController : Controller
     {
+        private readonly ApplicationDbContext db = new ApplicationDbContext();
 
         // GET: Payment
         public ActionResult Index()
@@ -104,7 +107,7 @@ namespace CoffeeShopOnline.Controllers
            
             var itemList = new ItemList() { items = new List<Item>() };
 
-            var cart = Session["CartItem"] as List<ShoppingCartModel>;
+            var cart = new PersistentCartService(db, HttpContext, User.Identity.GetUserId()).GetCart();
             if (cart == null || cart.Count == 0)
             {
                 throw new InvalidOperationException("The shopping cart is empty.");
@@ -170,5 +173,13 @@ namespace CoffeeShopOnline.Controllers
 
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

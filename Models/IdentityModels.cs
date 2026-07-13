@@ -58,6 +58,10 @@ namespace CoffeeShopOnline.Models
 
         public System.Data.Entity.DbSet<CoffeeShopOnline.Models.RoomTable> RoomTables { get; set; }
 
+        public System.Data.Entity.DbSet<CoffeeShopOnline.Models.CartDraft> CartDrafts { get; set; }
+
+        public System.Data.Entity.DbSet<CoffeeShopOnline.Models.CartDraftLine> CartDraftLines { get; set; }
+
 
     }
 }

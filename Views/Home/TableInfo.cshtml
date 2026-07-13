@@ -5,7 +5,7 @@
     ViewBag.Title = "בחירת שולחן";
     var indoorTables = Model.Where(table => table.RoomType == "InSide").OrderBy(table => table.TableNumber).ToList();
     var outdoorTables = Model.Where(table => table.RoomType == "OutSide").OrderBy(table => table.TableNumber).ToList();
-    var guestCount = Session["count"] == null ? 0 : Convert.ToInt32(Session["count"]);
+    var guestCount = ViewBag.GuestCount == null ? 0 : Convert.ToInt32(ViewBag.GuestCount);
     var outsideIsOpen = DateTime.Now.DayOfWeek != DayOfWeek.Friday && DateTime.Now.DayOfWeek != DayOfWeek.Saturday;
     var availableCount = indoorTables.Count(table => !table.Available && table.TableSits >= guestCount) + (outsideIsOpen ? outdoorTables.Count(table => !table.Available && table.TableSits >= guestCount) : 0);
     var message = TempData["Message"] as string;

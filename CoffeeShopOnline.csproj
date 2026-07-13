@@ -217,6 +217,7 @@
     <Compile Include="Controllers\RoomTablesController.cs" />
     <Compile Include="Controllers\ShoppingController.cs" />
     <Compile Include="Services\OrderPlacementService.cs" />
+    <Compile Include="Services\PersistentCartService.cs" />
     <Compile Include="CustomAuthorizeArtribute.cs" />
     <Compile Include="CustomPasswordHasher.cs" />
     <Compile Include="Encrypt.cs" />
@@ -343,9 +344,14 @@
     <Compile Include="Migrations\202201192005374_NumberOfTaken.Designer.cs">
       <DependentUpon>202201192005374_NumberOfTaken.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202607130739374_PersistentCartDrafts.cs" />
+    <Compile Include="Migrations\202607130739374_PersistentCartDrafts.Designer.cs">
+      <DependentUpon>202607130739374_PersistentCartDrafts.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\BaristaOrderViewModel.cs" />
+    <Compile Include="Models\CartDraft.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\ItemViewModel.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
@@ -792,6 +798,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202201192005374_NumberOfTaken.resx">
       <DependentUpon>202201192005374_NumberOfTaken.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202607130739374_PersistentCartDrafts.resx">
+      <DependentUpon>202607130739374_PersistentCartDrafts.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
