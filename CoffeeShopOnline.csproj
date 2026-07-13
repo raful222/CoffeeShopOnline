@@ -353,6 +353,7 @@
     <Compile Include="Models\ItemViewModel.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
     <Compile Include="Models\OrderViewModel.cs" />
+    <Compile Include="Models\RoomTableViewModels.cs" />
     <Compile Include="Models\RoleViewModel.cs" />
     <Compile Include="Models\ShoppingCartModel.cs" />
     <Compile Include="PaypalConfiguration.cs" />

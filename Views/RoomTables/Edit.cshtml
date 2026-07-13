@@ -1,82 +1,43 @@
-﻿@model CoffeeShopOnline.Models.RoomTable
+﻿@model CoffeeShopOnline.Models.RoomTableEditViewModel
 
 @{
-    ViewBag.Title = "Edit";
+    ViewBag.Title = "עריכת שולחן " + Model.TableNumber;
 }
 
-<h2>Edit</h2>
-
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
-    
-<div class="form-horizontal">
-    <h4>RoomTable</h4>
-    <hr />
-    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-    @Html.HiddenFor(model => model.Id)
-
-
-
-    <div class="form-group">
-        @Html.LabelFor(model => model.TableSits, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            @Html.EditorFor(model => model.TableSits, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.TableSits, "", new { @class = "text-danger" })
-        </div>
-    </div>
-
-    <div class="form-group">
-        @Html.LabelFor(model => model.TableNumber, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            <div class="checkbox">
-                @Html.EditorFor(model => model.TableNumber)
-                @Html.ValidationMessageFor(model => model.TableNumber, "", new { @class = "text-danger" })
+<section class="table-editor-shell" aria-labelledby="table-editor-title">
+    <a class="table-editor-back" href="@Url.Action("Index")"><i class="bi bi-arrow-right" aria-hidden="true"></i> חזרה למפת השולחנות</a>
+    <div class="table-editor-card">
+        <header><span class="eyebrow">עדכון בטוח</span><h1 id="table-editor-title">עריכת שולחן @Model.TableNumber</h1><p>מספר השולחן והאזור נעולים כדי לשמור על התאמה מלאה להיסטוריית ההזמנות.</p></header>
+        <div class="locked-table-details"><div><small>מספר שולחן</small><strong>@Model.TableNumber</strong></div><div><small>אזור</small><strong><i class="bi @(Model.IsInside ? "bi-house-door" : "bi-sun")" aria-hidden="true"></i> @(Model.IsInside ? "פנימי" : "חיצוני")</strong></div><div><small>מצב</small><strong class="@(Model.IsOccupied ? "text-occupied" : "text-free")">@(Model.IsOccupied ? "תפוס" : "פנוי")</strong></div></div>
+        @if (Model.IsOccupied)
+        {
+            <div class="table-edit-warning"><i class="bi bi-people" aria-hidden="true"></i><span><strong>יש הזמנה פעילה ל־@Model.ActiveDiners אורחים</strong> ניתן להגדיל קיבולת, אך לא להקטין מתחת למספר האורחים הנוכחי.</span></div>
+        }
+        @using (Html.BeginForm("Edit", "RoomTables", FormMethod.Post, new { @class = "table-editor-form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(model => model.Id)
+            <div class="table-capacity-field">
+                @Html.LabelFor(model => model.TableSeats)
+                <div><button type="button" data-step="-1" aria-label="הפחתת מקום"><i class="bi bi-dash" aria-hidden="true"></i></button>@Html.TextBoxFor(model => model.TableSeats, new { type = "number", min = "1", max = "12", step = "1", inputmode = "numeric" })<button type="button" data-step="1" aria-label="הוספת מקום"><i class="bi bi-plus" aria-hidden="true"></i></button></div>
+                <small>בין מקום אחד ל־12 מקומות</small>
+                @Html.ValidationMessageFor(model => model.TableSeats, "", new { @class = "field-error" })
             </div>
-        </div>
+            <footer><a href="@Url.Action("Index")">ביטול</a><button type="submit"><i class="bi bi-check2" aria-hidden="true"></i> שמירת הקיבולת</button></footer>
+        }
     </div>
-    <div class="form-group">
-        @Html.LabelFor(model => model.RoomType, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            <div class="checkbox">
-                @Html.EditorFor(model => model.RoomType)
-                @Html.ValidationMessageFor(model => model.RoomType, "", new { @class = "text-danger" })
-            </div>
-        </div>
-    </div>
+</section>
 
-
-    <div class="form-group">
-        @Html.LabelFor(model => model.Available, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            <div class="checkbox">
-                @Html.EditorFor(model => model.Available)
-                @Html.ValidationMessageFor(model => model.Available, "", new { @class = "text-danger" })
-            </div>
-        </div>
-    </div>
-
-    <div class="form-group">
-        @Html.LabelFor(model => model.InOrOut, htmlAttributes: new { @class = "control-label col-md-2" })
-        <div class="col-md-10">
-            <div class="checkbox">
-                @Html.EditorFor(model => model.InOrOut)
-                @Html.ValidationMessageFor(model => model.InOrOut, "", new { @class = "text-danger" })
-            </div>
-        </div>
-    </div>
-
-
-
-
-    <div class="form-group">
-        <div class="col-md-offset-2 col-md-10">
-            <input type="submit" value="Save" class="btn btn-default" />
-        </div>
-    </div>
-</div>
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        (function () {
+            var input = document.getElementById('TableSeats');
+            document.querySelectorAll('[data-step]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    input.value = Math.max(1, Math.min(12, parseInt(input.value || '1', 10) + parseInt(button.getAttribute('data-step'), 10)));
+                });
+            });
+        }());
+    </script>
 }
-
-<div>
-    @Html.ActionLink("Back to List", "Index")
-</div>

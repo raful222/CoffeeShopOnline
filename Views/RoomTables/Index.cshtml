@@ -1,59 +1,135 @@
-﻿@model IEnumerable<CoffeeShopOnline.Models.RoomTable>
+﻿@model CoffeeShopOnline.Models.RoomTableDashboardViewModel
 
 @{
-    ViewBag.Title = "Index";
+    ViewBag.Title = "ניהול שולחנות";
 }
 
-<h2>Index</h2>
+<section class="table-admin" aria-labelledby="table-admin-title">
+    <header class="table-admin-hero">
+        <div>
+            <span class="eyebrow">מפת המסעדה</span>
+            <h1 id="table-admin-title">ניהול שולחנות</h1>
+            <p>תמונת מצב מדויקת של אזורי הישיבה, הקיבולת והתפוסה — בלי לפגוע בהזמנות פעילות.</p>
+        </div>
+        <a class="table-admin-add" href="@Url.Action("Create")"><i class="bi bi-plus-lg" aria-hidden="true"></i> הוספת שולחן</a>
+    </header>
 
-<p>
-    @Html.ActionLink("Create New", "Create")
-</p>
-<table class="table">
-    <tr>
-        <th>
-            @Html.DisplayNameFor(model => model.TableNumber)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.TableSits)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.Available)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.InOrOut)
-        </th>
-        <th>
-            @Html.DisplayNameFor(model => model.RoomType)
-        </th>
-        
-        <th></th>
-    </tr>
+    @if (TempData["TableMessage"] != null)
+    {
+        <div class="table-admin-notice notice-success" role="status"><i class="bi bi-check-circle" aria-hidden="true"></i> @TempData["TableMessage"]</div>
+    }
+    @if (TempData["TableWarning"] != null)
+    {
+        <div class="table-admin-notice notice-warning" role="alert"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> @TempData["TableWarning"]</div>
+    }
 
-@foreach (var item in Model) {
-    <tr>
-        <td>
-            @Html.DisplayFor(modelItem => item.TableNumber)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.TableSits)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.Available)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.InOrOut)
-        </td>
-        <td>
-            @Html.DisplayFor(modelItem => item.RoomType)
-        </td>
-        
-        <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.Id }) |
-            @Html.ActionLink("Details", "Details", new { id=item.Id }) |
-            @Html.ActionLink("Delete", "Delete", new { id=item.Id })
-        </td>
-    </tr>
+    <div class="table-admin-metrics" aria-label="סיכום שולחנות">
+        <article class="metric-free"><span><i class="bi bi-check2-circle" aria-hidden="true"></i></span><div><small>שולחנות פנויים</small><strong>@Model.FreeCount</strong></div></article>
+        <article class="metric-occupied"><span><i class="bi bi-people" aria-hidden="true"></i></span><div><small>תפוסים עכשיו</small><strong>@Model.OccupiedCount</strong></div></article>
+        <article class="metric-release"><span><i class="bi bi-arrow-repeat" aria-hidden="true"></i></span><div><small>דורשים שחרור</small><strong>@Model.RequiresReleaseCount</strong></div></article>
+        <article><span><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></span><div><small>סה״כ מקומות ישיבה</small><strong>@Model.TotalSeats</strong></div></article>
+    </div>
+
+    <div class="table-admin-toolbar">
+        <label class="table-admin-search"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">חיפוש שולחן</span><input id="tableSearch" type="search" placeholder="חיפוש לפי מספר שולחן" inputmode="numeric" /></label>
+        <div class="table-area-filters" role="group" aria-label="סינון לפי אזור">
+            <button type="button" class="table-area-filter is-active" data-area="all">כל האזורים <span>@Model.Tables.Count</span></button>
+            <button type="button" class="table-area-filter" data-area="inside">בפנים <span>@Model.InsideCount</span></button>
+            <button type="button" class="table-area-filter" data-area="outside">בחוץ <span>@Model.OutsideCount</span></button>
+        </div>
+        <label class="table-status-select"><span>מצב</span><select id="tableStatus"><option value="all">הכול</option><option value="free">פנוי</option><option value="occupied">תפוס</option><option value="release">דורש שחרור</option></select></label>
+    </div>
+
+    <div id="tableAdminGrid" class="table-admin-grid">
+        @foreach (var table in Model.Tables)
+        {
+            var statusKey = table.IsOccupied ? "occupied" : table.RequiresRelease ? "release" : "free";
+            var statusLabel = table.IsOccupied ? "תפוס" : table.RequiresRelease ? "ממתין לשחרור" : "פנוי";
+            var areaKey = table.IsInside ? "inside" : "outside";
+            <article class="table-admin-card table-state-@statusKey" data-area="@areaKey" data-status="@statusKey" data-search="@table.TableNumber">
+                <header>
+                    <div class="admin-table-number"><small>שולחן</small><strong>@table.TableNumber</strong></div>
+                    <span class="admin-table-status"><i class="bi bi-circle-fill" aria-hidden="true"></i> @statusLabel</span>
+                </header>
+
+                <div class="admin-table-visual" aria-hidden="true">
+                    <span class="admin-table-top"></span>
+                    <div><i class="bi @(table.IsInside ? "bi-house" : "bi-tree")"></i><strong>@table.TableSeats</strong><small>מקומות</small></div>
+                    <span class="admin-table-bottom"></span>
+                </div>
+
+                <div class="admin-table-meta">
+                    <span><i class="bi @(table.IsInside ? "bi-house-door" : "bi-sun")" aria-hidden="true"></i> @(table.IsInside ? "אזור פנימי" : "אזור חיצוני")</span>
+                    <span><i class="bi bi-bar-chart" aria-hidden="true"></i> @table.TimesUsed שימושים</span>
+                </div>
+
+                @if (table.IsOccupied)
+                {
+                    <div class="active-table-order">
+                        <span><i class="bi bi-receipt" aria-hidden="true"></i> הזמנה פעילה</span>
+                        <strong>@table.ActiveDiners אורחים</strong>
+                        <small>עד @table.ActiveUntil.Value.ToString("HH:mm") · #@table.ActiveOrderNumber</small>
+                    </div>
+                }
+                else if (table.RequiresRelease)
+                {
+                    <div class="release-table-callout">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                        <span>זמן ההזמנה הסתיים, אך השולחן עדיין מסומן כתפוס.</span>
+                        @using (Html.BeginForm("Release", "RoomTables", new { id = table.Id }, FormMethod.Post, new { @class = "release-table-form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <button type="submit">שחרור בטוח</button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="free-table-callout"><i class="bi bi-check2" aria-hidden="true"></i> זמין להזמנה חדשה</div>
+                }
+
+                <footer>
+                    <a href="@Url.Action("Edit", new { id = table.Id })"><i class="bi bi-pencil" aria-hidden="true"></i> עריכת קיבולת</a>
+                    <a class="table-delete-link" href="@Url.Action("Delete", new { id = table.Id })"><i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">מחיקת שולחן @table.TableNumber</span></a>
+                </footer>
+            </article>
+        }
+    </div>
+
+    <div id="tableAdminEmpty" class="table-admin-empty" hidden><i class="bi bi-grid" aria-hidden="true"></i><h2>לא נמצאו שולחנות</h2><p>נסו לשנות את אפשרויות הסינון.</p></div>
+</section>
+
+@section scripts {
+    <script>
+        (function () {
+            var search = document.getElementById('tableSearch');
+            var status = document.getElementById('tableStatus');
+            var filters = document.querySelectorAll('.table-area-filter');
+            var cards = document.querySelectorAll('.table-admin-card');
+            var empty = document.getElementById('tableAdminEmpty');
+            var area = 'all';
+            function refreshTables() {
+                var query = (search.value || '').trim();
+                var visible = 0;
+                cards.forEach(function (card) {
+                    var matchesArea = area === 'all' || card.getAttribute('data-area') === area;
+                    var matchesStatus = status.value === 'all' || card.getAttribute('data-status') === status.value;
+                    var matchesSearch = !query || card.getAttribute('data-search').indexOf(query) !== -1;
+                    card.hidden = !(matchesArea && matchesStatus && matchesSearch);
+                    if (!card.hidden) visible++;
+                });
+                empty.hidden = visible !== 0;
+            }
+            filters.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    filters.forEach(function (candidate) { candidate.classList.remove('is-active'); });
+                    button.classList.add('is-active');
+                    area = button.getAttribute('data-area');
+                    refreshTables();
+                });
+            });
+            search.addEventListener('input', refreshTables);
+            status.addEventListener('change', refreshTables);
+        }());
+    </script>
 }
-
-</table>

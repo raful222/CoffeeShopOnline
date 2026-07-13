@@ -1,65 +1,22 @@
 ﻿@model CoffeeShopOnline.Models.RoomTable
 
 @{
-    ViewBag.Title = "Delete";
+    ViewBag.Title = "מחיקת שולחן " + Model.TableNumber;
 }
 
-<h2>Delete</h2>
-
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>RoomTable</h4>
-    <hr />
-    <dl class="dl-horizontal">
-        <dt>
-            @Html.DisplayNameFor(model => model.TableNumber)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.TableNumber)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.TableSits)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.TableSits)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.Available)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.Available)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.InOrOut)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.InOrOut)
-        </dd>
-
-        <dt>
-            @Html.DisplayNameFor(model => model.RoomType)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.RoomType)
-        </dd>
-
-        
-    </dl>
-
-    @using (Html.BeginForm()) {
-        @Html.AntiForgeryToken()
-
-        <div class="form-actions no-color">
-            <input type="submit" value="Delete" class="btn btn-default" /> |
-            @Html.ActionLink("Back to List", "Index")
-        </div>
-    }
-</div>
+<section class="delete-product-shell" aria-labelledby="delete-table-title">
+    <a class="delete-back" href="@Url.Action("Index")"><i class="bi bi-arrow-right" aria-hidden="true"></i> חזרה למפת השולחנות</a>
+    <div class="delete-product-card">
+        <span class="delete-warning-icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+        <span class="eyebrow">פעולה בלתי הפיכה</span>
+        <h1 id="delete-table-title">מחיקת שולחן @Model.TableNumber</h1>
+        <p>המערכת תמנע את המחיקה אם השולחן מופיע בהזמנה פעילה או בהיסטוריית הזמנות.</p>
+        <div class="delete-table-preview"><span><i class="bi @(Model.InOrOut ? "bi-house-door" : "bi-sun")" aria-hidden="true"></i></span><div><small>@(Model.InOrOut ? "אזור פנימי" : "אזור חיצוני")</small><strong>שולחן @Model.TableNumber</strong><p>@Model.TableSits מקומות ישיבה</p></div></div>
+        <div class="delete-safe-option"><i class="bi bi-shield-check" aria-hidden="true"></i><span><strong>היסטוריית ההזמנות מוגנת</strong> שולחן ששימש להזמנה לא יימחק, כדי שהדוחות וההזמנות הקודמות יישארו תקינים.</span></div>
+        @using (Html.BeginForm("Delete", "RoomTables", new { id = Model.Id }, FormMethod.Post, new { @class = "delete-product-actions" }))
+        {
+            @Html.AntiForgeryToken()
+            <a href="@Url.Action("Index")">ביטול וחזרה</a><button type="submit"><i class="bi bi-trash3" aria-hidden="true"></i> מחיקת השולחן</button>
+        }
+    </div>
+</section>

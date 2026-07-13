@@ -1,48 +1,53 @@
-﻿@model CoffeeShopOnline.Models.RoomTable
+﻿@model CoffeeShopOnline.Models.RoomTableCreateViewModel
 
 @{
-    ViewBag.Title = "Create";
+    ViewBag.Title = "הוספת שולחן";
 }
 
-<h2>Create</h2>
-
-@using (Html.BeginForm()) 
-{
-    @Html.AntiForgeryToken()
-    
-    <div class="form-horizontal">
-        <h4>RoomTable</h4>
-        <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-        
-        <div class="form-group">
-            @Html.LabelFor(model => model.TableSits, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.TableSits, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.TableSits, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-
-        <div class="form-group">
-            @Html.LabelFor(model => model.InOrOut, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                <div class="checkbox">
-                    @Html.EditorFor(model => model.InOrOut)
-                    @Html.ValidationMessageFor(model => model.InOrOut, "", new { @class = "text-danger" })
+<section class="table-editor-shell" aria-labelledby="table-editor-title">
+    <a class="table-editor-back" href="@Url.Action("Index")"><i class="bi bi-arrow-right" aria-hidden="true"></i> חזרה למפת השולחנות</a>
+    <div class="table-editor-card">
+        <header><span class="eyebrow">הרחבת אזור הישיבה</span><h1 id="table-editor-title">הוספת שולחן חדש</h1><p>בחרו אזור וקיבולת. מספר השולחן יוקצה אוטומטית ובצורה בטוחה.</p></header>
+        @using (Html.BeginForm("Create", "RoomTables", FormMethod.Post, new { @class = "table-editor-form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "בדקו את הפרטים ונסו שוב.", new { @class = "editor-validation", role = "alert" })
+            <fieldset class="table-area-choice">
+                <legend>איפה השולחן נמצא?</legend>
+                <div>
+                    @Html.RadioButtonFor(model => model.IsInside, true, new { id = "AreaInside" })
+                    <label for="AreaInside"><span><i class="bi bi-house-door" aria-hidden="true"></i></span><strong>אזור פנימי</strong><small>מספר חדש החל מסדרת 100</small></label>
+                    @Html.RadioButtonFor(model => model.IsInside, false, new { id = "AreaOutside" })
+                    <label for="AreaOutside"><span><i class="bi bi-sun" aria-hidden="true"></i></span><strong>אזור חיצוני</strong><small>מספר חדש החל מסדרת 200</small></label>
                 </div>
+            </fieldset>
+            <div class="table-capacity-field">
+                @Html.LabelFor(model => model.TableSeats)
+                <div><button type="button" data-step="-1" aria-label="הפחתת מקום"><i class="bi bi-dash" aria-hidden="true"></i></button>@Html.TextBoxFor(model => model.TableSeats, new { type = "number", min = "1", max = "12", step = "1", inputmode = "numeric" })<button type="button" data-step="1" aria-label="הוספת מקום"><i class="bi bi-plus" aria-hidden="true"></i></button></div>
+                <small>בין מקום אחד ל־12 מקומות</small>
+                @Html.ValidationMessageFor(model => model.TableSeats, "", new { @class = "field-error" })
             </div>
-        </div>
-
-       
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Create" class="btn btn-default" />
-            </div>
-        </div>
+            <div class="table-editor-preview"><span><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i></span><div><small>תצוגה מקדימה</small><strong id="capacityPreview">@Model.TableSeats מקומות ישיבה</strong><p>השולחן יתווסף כפנוי ויופיע מיד בבחירת השולחן של הלקוחות.</p></div></div>
+            <footer><a href="@Url.Action("Index")">ביטול</a><button type="submit"><i class="bi bi-plus-lg" aria-hidden="true"></i> יצירת השולחן</button></footer>
+        }
     </div>
-}
+</section>
 
-<div>
-    @Html.ActionLink("Back to List", "Index")
-</div>
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        (function () {
+            var input = document.getElementById('TableSeats');
+            var preview = document.getElementById('capacityPreview');
+            function updatePreview() { preview.textContent = input.value + ' מקומות ישיבה'; }
+            document.querySelectorAll('[data-step]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var next = Math.max(1, Math.min(12, parseInt(input.value || '1', 10) + parseInt(button.getAttribute('data-step'), 10)));
+                    input.value = next;
+                    updatePreview();
+                });
+            });
+            input.addEventListener('input', updatePreview);
+        }());
+    </script>
+}
