@@ -64,6 +64,11 @@
             <p class="auth-terms"><i class="bi bi-shield-check"></i> בלחיצה על הרשמה אתם מאשרים שמירת פרטי החשבון לצורך שירות והטבות.</p>
             <button type="submit" class="btn btn-coffee btn-lg w-100">יצירת חשבון <i class="bi bi-arrow-left"></i></button>
         }
+        <div class="guest-checkout-panel">
+            <span class="guest-checkout-icon"><i class="bi bi-lightning-charge" aria-hidden="true"></i></span>
+            <div><strong>לא חייבים להירשם</strong><small>אפשר להמשיך מיד להזמנה כאורח. החשבון נדרש רק לצבירת כוכבים והטבות.</small></div>
+            <a href="@Url.Action("OnlineOrder", "Home")">המשך ללא חשבון <i class="bi bi-arrow-left" aria-hidden="true"></i></a>
+        </div>
         <div class="auth-switch">כבר יש לכם חשבון? @Html.ActionLink("כניסה", "Login", "Account")</div>
     </div>
 </section>

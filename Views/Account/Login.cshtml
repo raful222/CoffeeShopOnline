@@ -3,7 +3,13 @@
 @{
     ViewBag.Title = "כניסה";
     var returnUrl = ViewBag.ReturnUrl as string;
-    var isStaffLogin = !string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith("/Barista", StringComparison.OrdinalIgnoreCase);
+    var isStaffLogin = !string.IsNullOrWhiteSpace(returnUrl) &&
+        (returnUrl.StartsWith("/Barista", StringComparison.OrdinalIgnoreCase) ||
+         returnUrl.StartsWith("/Orders", StringComparison.OrdinalIgnoreCase) ||
+         returnUrl.StartsWith("/Items", StringComparison.OrdinalIgnoreCase) ||
+         returnUrl.StartsWith("/RoomTables", StringComparison.OrdinalIgnoreCase) ||
+         returnUrl.StartsWith("/Categories", StringComparison.OrdinalIgnoreCase) ||
+         returnUrl.StartsWith("/Role", StringComparison.OrdinalIgnoreCase));
 }
 
 <section class="auth-shell">
@@ -22,8 +28,16 @@
     <div class="auth-card">
         <div class="auth-card-heading">
             <span class="auth-icon"><i class="bi bi-person-lock"></i></span>
-            <div><span class="eyebrow">חשבון GTR</span><h2>כניסה לחשבון</h2></div>
+            <div><span class="eyebrow">@(isStaffLogin ? "גישה לצוות" : "חשבון GTR")</span><h2>@(isStaffLogin ? "כניסת עובדים" : "כניסה לחשבון")</h2></div>
         </div>
+
+        @if (isStaffLogin)
+        {
+            <div class="staff-access-note" role="note">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                <span><strong>הגעתם למסך ניהול מוגן</strong> יצירה וניהול של מוצרים, שולחנות והזמנות זמינים רק לעובדים מורשים.</span>
+            </div>
+        }
 
         @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "auth-form", role = "form" }))
         {
@@ -51,7 +65,12 @@
         }
 
         @Html.Partial("_ExternalLoginsListPartial", new ExternalLoginListViewModel { ReturnUrl = ViewBag.ReturnUrl })
-        <div class="auth-switch">עדיין אין לכם חשבון? @Html.ActionLink("הרשמה מהירה", "Register", "Account")</div>
+        <div class="guest-checkout-panel">
+            <span class="guest-checkout-icon"><i class="bi bi-bag-check" aria-hidden="true"></i></span>
+            <div><strong>רוצים רק להזמין קפה?</strong><small>לקוחות יכולים לבחור שולחן ולהזמין ללא הרשמה וללא חשבון.</small></div>
+            <a href="@Url.Action("OnlineOrder", "Home")">המשך כאורח <i class="bi bi-arrow-left" aria-hidden="true"></i></a>
+        </div>
+        <div class="auth-switch">חשבון הוא אופציונלי ונועד להטבות. @Html.ActionLink("הצטרפות למועדון", "Register", "Account")</div>
     </div>
 </section>
 
